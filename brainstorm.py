@@ -12,6 +12,7 @@ SCREEN_TITLE = "CS10 Arcade Team Game"
 
 SPRITE_SCALING_PLAYER = 0.1
 MOVEMENT_SPEED = 5
+AUTO_MOVE_SPEED = 2  # Speed for automatic upward movement
 
 
 class GameView(arcade.View):
@@ -90,7 +91,10 @@ class GameView(arcade.View):
 
     def on_update(self, delta_time: float) -> None:
         """Update game logic."""
-        # Move the player sprite based on pressed keys
+        # Always move up slowly
+        self.player_sprite.center_y += AUTO_MOVE_SPEED
+
+        # Move based on arrow key presses
         if self.left_pressed:
             self.player_sprite.center_x -= MOVEMENT_SPEED
         if self.right_pressed:
