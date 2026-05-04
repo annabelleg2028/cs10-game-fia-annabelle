@@ -166,22 +166,11 @@ class GameView(arcade.View):
             self.player_sprite.center_x = SCREEN_WIDTH
 
         # Check for collisions with obstacles
-        player_rect = arcade.Rect(
-            self.player_sprite.center_x - self.player_sprite.width/2,
-            self.player_sprite.center_y - self.player_sprite.height/2,
-            self.player_sprite.width,
-            self.player_sprite.height
-        )
-
         for obstacle in self.obstacle_list:
-            obstacle_rect = arcade.Rect(
-                obstacle["x"] - OBSTACLE_WIDTH/2,
-                obstacle["y"] - OBSTACLE_HEIGHT/2,
-                OBSTACLE_WIDTH,
-                OBSTACLE_HEIGHT
-            )
+            dx = abs(self.player_sprite.center_x - obstacle["x"])
+            dy = abs(self.player_sprite.center_y - obstacle["y"])
 
-            if player_rect.collides_with_rect(obstacle_rect):
+            if dx < (OBSTACLE_WIDTH / 2 + 20) and dy < (OBSTACLE_HEIGHT / 2 + 20):
                 self.game_over = True
 
 
