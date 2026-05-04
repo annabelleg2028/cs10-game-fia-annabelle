@@ -6,6 +6,7 @@ Other students build features in game-yourname.py files and share them for integ
 
 import arcade
 import random
+import traceback
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -35,8 +36,6 @@ class GameView(arcade.View):
         self.scroll_y = 0
         self.obstacle_spawn_y = 0
         self.score = 0
-        self.hit_message = ""
-        self.hit_timer = 0
 
     def on_show_view(self) -> None:
         arcade.set_background_color(self.background_color)
@@ -55,48 +54,39 @@ class GameView(arcade.View):
         self.score = 0
         self.scroll_y = 0
         self.obstacle_spawn_y = 0
-        self.hit_message = ""
-        self.hit_timer = 0
 
     def on_draw(self) -> None:
-        self.clear()
+        try:
+            self.clear()
 
-        # Draw scrolling background lines
-        for i in range(-1, 3):
-            y = (i * 100) - (self.scroll_y % 100)
-            arcade.draw_line(0, y, SCREEN_WIDTH, y, arcade.color.WHITE, 2)
+            # Draw scrolling background lines
+            for i in range(-1, 3):
+                y = (i * 100) - (self.scroll_y % 100)
+                arcade.draw_line(0, y, SCREEN_WIDTH, y, arcade.color.WHITE, 2)
 
-        # Draw obstacles as red rectangles
-        for obstacle in self.obstacle_list:
-            arcade.draw_rectangle_filled(
-                obstacle["x"],
-                obstacle["y"],
-                OBSTACLE_WIDTH,
-                OBSTACLE_HEIGHT,
-                arcade.color.RED
-            )
+            # Draw obstacles as red rectangles
+            for obstacle in self.obstacle_list:
+                arcade.draw_rectangle_filled(
+                    obstacle["x"],
+                    obstacle["y"],
+                    OBSTACLE_WIDTH,
+                    OBSTACLE_HEIGHT,
+                    arcade.color.RED
+                )
 
-        self.player_list.draw()
+            self.player_list.draw()
 
-        # Draw score
-        arcade.draw_text(
-            f"Score: {self.score}",
-            10,
-            SCREEN_HEIGHT - 30,
-            arcade.color.WHITE,
-            14,
-        )
-
-        # Draw hit message if active
-        if self.hit_timer > 0:
+            # Draw score
             arcade.draw_text(
-                self.hit_message,
-                SCREEN_WIDTH / 2,
-                SCREEN_HEIGHT / 2,
-                arcade.color.RED,
-                24,
-                anchor_x="center",
+                f"Score: {self.score}",
+                10,
+                SCREEN_HEIGHT - 30,
+                arcade.color.WHITE,
+                14,
             )
+        except Exception as e:
+            print(f"Error in on_draw: {e}")
+            traceback.print_exc()
 
     def on_key_press(self, key, modifiers) -> None:
         """Handle key presses."""
@@ -114,49 +104,39 @@ class GameView(arcade.View):
 
     def on_update(self, delta_time: float) -> None:
         """Update game logic."""
-        # Decrease hit message timer
-        if self.hit_timer > 0:
-            self.hit_timer -= 1
+        try:
+            # Always move forward (scroll background)
+            self.scroll_y += AUTO_MOVE_SPEED
+            self.obstacle_spawn_y += AUTO_MOVE_SPEED
+            self.score += 1
 
-        # Always move forward (scroll background)
-        self.scroll_y += AUTO_MOVE_SPEED
-        self.obstacle_spawn_y += AUTO_MOVE_SPEED
-        self.score += 1
+            # Spawn new obstacles
+            if self.obstacle_spawn_y > 100:
+                x = random.randrange(100, SCREEN_WIDTH - 100)
+                self.obstacle_list.append({"x": x, "y": SCREEN_HEIGHT - 50})
+                self.obstacle_spawn_y = 0
 
-        # Spawn new obstacles
-        if self.obstacle_spawn_y > 100:
-            x = random.randrange(100, SCREEN_WIDTH - 100)
-            self.obstacle_list.append({"x": x, "y": SCREEN_HEIGHT - 50})
-            self.obstacle_spawn_y = 0
+            # Move obstacles down
+            for obstacle in self.obstacle_list:
+                obstacle["y"] -= AUTO_MOVE_SPEED
 
-        # Move obstacles down
-        for obstacle in self.obstacle_list:
-            obstacle["y"] -= AUTO_MOVE_SPEED
+            # Remove obstacles that are off screen
+            self.obstacle_list = [obs for obs in self.obstacle_list if obs["y"] > -50]
 
-        # Remove obstacles that are off screen
-        self.obstacle_list = [obs for obs in self.obstacle_list if obs["y"] > -50]
+            # Move left/right with arrow keys
+            if self.left_pressed:
+                self.player_sprite.center_x -= MOVEMENT_SPEED
+            if self.right_pressed:
+                self.player_sprite.center_x += MOVEMENT_SPEED
 
-        # Move left/right with arrow keys
-        if self.left_pressed:
-            self.player_sprite.center_x -= MOVEMENT_SPEED
-        if self.right_pressed:
-            self.player_sprite.center_x += MOVEMENT_SPEED
-
-        # Keep player in bounds
-        if self.player_sprite.center_x < 0:
-            self.player_sprite.center_x = 0
-        if self.player_sprite.center_x > SCREEN_WIDTH:
-            self.player_sprite.center_x = SCREEN_WIDTH
-
-        # Check for collisions with obstacles
-        for obstacle in self.obstacle_list:
-            dx = abs(self.player_sprite.center_x - obstacle["x"])
-            dy = abs(self.player_sprite.center_y - obstacle["y"])
-
-            # Show message if hit, but don't end game
-            if dx < 15 and dy < 15:
-                self.hit_message = "HIT!"
-                self.hit_timer = 30  # Show message for 30 frames
+            # Keep player in bounds
+            if self.player_sprite.center_x < 0:
+                self.player_sprite.center_x = 0
+            if self.player_sprite.center_x > SCREEN_WIDTH:
+                self.player_sprite.center_x = SCREEN_WIDTH
+        except Exception as e:
+            print(f"Error in on_update: {e}")
+            traceback.print_exc()
 
 
 def main() -> None:
