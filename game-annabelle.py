@@ -10,6 +10,8 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 SCREEN_TITLE = "CS10 Arcade Team Game"
 
+SPRITE_SCALING_PLAYER = 0.1
+
 
 class GameView(arcade.View):
     """Minimal view students can extend."""
@@ -18,11 +20,28 @@ class GameView(arcade.View):
         super().__init__()
         self.background_color = arcade.csscolor.DARK_SLATE_BLUE
 
+        self.player_sprite = None
+        self.player_list = None
+
     def on_show_view(self) -> None:
         arcade.set_background_color(self.background_color)
 
+        # Set up the player sprite
+        self.player_list = arcade.SpriteList()
+        self.player_sprite = arcade.Sprite(
+            "player2.png",
+            scale=SPRITE_SCALING_PLAYER,
+        )
+        self.player_sprite.center_x = SCREEN_WIDTH / 2
+        self.player_sprite.center_y = SCREEN_HEIGHT / 2
+        self.player_list.append(self.player_sprite)
+
     def on_draw(self) -> None:
         self.clear()
+
+        # Draw the player sprite
+        self.player_list.draw()
+
         arcade.draw_text(
             "CS10 Arcade Starter",
             SCREEN_WIDTH / 2,
