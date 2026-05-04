@@ -142,8 +142,8 @@ class GameView(arcade.View):
 
         # Spawn new obstacles
         if self.obstacle_spawn_y > 100:
-            x = random.randrange(50, SCREEN_WIDTH - 50)
-            self.obstacle_list.append({"x": x, "y": SCREEN_HEIGHT + 50})
+            x = random.randrange(100, SCREEN_WIDTH - 100)
+            self.obstacle_list.append({"x": x, "y": SCREEN_HEIGHT - 50})
             self.obstacle_spawn_y = 0
 
         # Move obstacles down
@@ -170,7 +170,8 @@ class GameView(arcade.View):
             dx = abs(self.player_sprite.center_x - obstacle["x"])
             dy = abs(self.player_sprite.center_y - obstacle["y"])
 
-            if dx < (OBSTACLE_WIDTH / 2 + 20) and dy < (OBSTACLE_HEIGHT / 2 + 20):
+            # Only collide if sprite directly touches obstacle
+            if dx < 15 and dy < 15:
                 self.game_over = True
 
 
