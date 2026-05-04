@@ -34,8 +34,9 @@ class GameView(arcade.View):
 
         self.scroll_y = 0
         self.obstacle_spawn_y = 0
-        self.game_over = False
         self.score = 0
+        self.hit_message = ""
+        self.hit_timer = 0
 
     def on_show_view(self) -> None:
         arcade.set_background_color(self.background_color)
@@ -51,10 +52,11 @@ class GameView(arcade.View):
         self.player_sprite.center_y = SCREEN_HEIGHT / 2
         self.player_list.append(self.player_sprite)
 
-        self.game_over = False
         self.score = 0
         self.scroll_y = 0
         self.obstacle_spawn_y = 0
+        self.hit_message = ""
+        self.hit_timer = 0
 
     def on_draw(self) -> None:
         self.clear()
@@ -85,39 +87,19 @@ class GameView(arcade.View):
             14,
         )
 
-        if self.game_over:
-            arcade.draw_rectangle_filled(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT, arcade.color.BLACK)
+        # Draw hit message if active
+        if self.hit_timer > 0:
             arcade.draw_text(
-                "GAME OVER!",
-                SCREEN_WIDTH / 2,
-                SCREEN_HEIGHT / 2 + 50,
-                arcade.color.RED,
-                40,
-                anchor_x="center",
-            )
-            arcade.draw_text(
-                f"Final Score: {self.score}",
+                self.hit_message,
                 SCREEN_WIDTH / 2,
                 SCREEN_HEIGHT / 2,
-                arcade.color.WHITE,
+                arcade.color.RED,
                 24,
-                anchor_x="center",
-            )
-            arcade.draw_text(
-                "Press R to restart",
-                SCREEN_WIDTH / 2,
-                SCREEN_HEIGHT / 2 - 50,
-                arcade.color.LIGHT_GRAY,
-                14,
                 anchor_x="center",
             )
 
     def on_key_press(self, key, modifiers) -> None:
         """Handle key presses."""
-        if self.game_over and key == arcade.key.R:
-            self.on_show_view()
-            return
-
         if key == arcade.key.LEFT:
             self.left_pressed = True
         elif key == arcade.key.RIGHT:
@@ -132,8 +114,9 @@ class GameView(arcade.View):
 
     def on_update(self, delta_time: float) -> None:
         """Update game logic."""
-        if self.game_over:
-            return
+        # Decrease hit message timer
+        if self.hit_timer > 0:
+            self.hit_timer -= 1
 
         # Always move forward (scroll background)
         self.scroll_y += AUTO_MOVE_SPEED
@@ -170,9 +153,10 @@ class GameView(arcade.View):
             dx = abs(self.player_sprite.center_x - obstacle["x"])
             dy = abs(self.player_sprite.center_y - obstacle["y"])
 
-            # Only collide if sprite directly touches obstacle
+            # Show message if hit, but don't end game
             if dx < 15 and dy < 15:
-                self.game_over = True
+                self.hit_message = "HIT!"
+                self.hit_timer = 30  # Show message for 30 frames
 
 
 def main() -> None:
