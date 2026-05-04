@@ -45,6 +45,8 @@ class GameView(arcade.View):
 
         self.scroll_y = 0
         self.obstacle_spawn_y = 0
+        self.game_over = False
+        self.score = 0
 
     def on_show_view(self) -> None:
         arcade.set_background_color(self.background_color)
@@ -59,6 +61,9 @@ class GameView(arcade.View):
         self.player_sprite.center_x = SCREEN_WIDTH / 2
         self.player_sprite.center_y = SCREEN_HEIGHT / 2
         self.player_list.append(self.player_sprite)
+
+        self.game_over = False
+        self.score = 0
 
     def on_draw(self) -> None:
         self.clear()
@@ -80,25 +85,48 @@ class GameView(arcade.View):
 
         self.player_list.draw()
 
+        # Draw score
         arcade.draw_text(
-            "CS10 Arcade Starter",
-            SCREEN_WIDTH / 2,
-            SCREEN_HEIGHT / 2 + 24,
+            f"Score: {self.score}",
+            10,
+            SCREEN_HEIGHT - 30,
             arcade.color.WHITE,
-            28,
-            anchor_x="center",
-        )
-        arcade.draw_text(
-            "Edit game.py (owner) or your game-yourname.py file",
-            SCREEN_WIDTH / 2,
-            SCREEN_HEIGHT / 2 - 20,
-            arcade.color.LIGHT_GRAY,
             14,
-            anchor_x="center",
         )
+
+        if self.game_over:
+            arcade.draw_rectangle_filled(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT, arcade.color.BLACK)
+            arcade.draw_text(
+                "GAME OVER!",
+                SCREEN_WIDTH / 2,
+                SCREEN_HEIGHT / 2 + 50,
+                arcade.color.RED,
+                40,
+                anchor_x="center",
+            )
+            arcade.draw_text(
+                f"Final Score: {self.score}",
+                SCREEN_WIDTH / 2,
+                SCREEN_HEIGHT / 2,
+                arcade.color.WHITE,
+                24,
+                anchor_x="center",
+            )
+            arcade.draw_text(
+                "Press R to restart",
+                SCREEN_WIDTH / 2,
+                SCREEN_HEIGHT / 2 - 50,
+                arcade.color.LIGHT_GRAY,
+                14,
+                anchor_x="center",
+            )
 
     def on_key_press(self, key, modifiers) -> None:
         """Handle key presses."""
+        if self.game_over and key == arcade.key.R:
+            self.on_show_view()
+            return
+
         if key == arcade.key.LEFT:
             self.left_pressed = True
         elif key == arcade.key.RIGHT:
@@ -113,9 +141,13 @@ class GameView(arcade.View):
 
     def on_update(self, delta_time: float) -> None:
         """Update game logic."""
+        if self.game_over:
+            return
+
         # Always move forward (scroll background)
         self.scroll_y += AUTO_MOVE_SPEED
         self.obstacle_spawn_y += AUTO_MOVE_SPEED
+        self.score += 1
 
         # Spawn new obstacles
         if self.obstacle_spawn_y > 100:
@@ -148,7 +180,7 @@ class GameView(arcade.View):
         # Check for collisions with obstacles
         for obstacle in self.obstacle_list:
             if arcade.check_for_collision(self.player_sprite, obstacle):
-                print("Game Over! You hit an obstacle!")
+                self.game_over = True
 
 
 def main() -> None:
@@ -161,3 +193,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    
