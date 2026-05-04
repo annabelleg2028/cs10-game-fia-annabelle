@@ -45,6 +45,11 @@ class GameView(arcade.View):
     def on_draw(self) -> None:
         self.clear()
 
+        # Draw scrolling background lines
+        for i in range(-1, 3):
+            y = (i * 100) - (self.scroll_y % 100)
+            arcade.draw_line(0, y, SCREEN_WIDTH, y, arcade.color.WHITE, 2)
+
         self.player_list.draw()
 
         arcade.draw_text(
@@ -80,8 +85,10 @@ class GameView(arcade.View):
 
     def on_update(self, delta_time: float) -> None:
         """Update game logic."""
+        # Always move forward (scroll background)
         self.scroll_y += AUTO_MOVE_SPEED
 
+        # Move left/right with arrow keys
         if self.left_pressed:
             self.player_sprite.center_x -= MOVEMENT_SPEED
         if self.right_pressed:
