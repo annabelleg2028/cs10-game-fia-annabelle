@@ -28,8 +28,9 @@ class GameView(arcade.View):
         # Track which keys are pressed
         self.left_pressed = False
         self.right_pressed = False
-        self.up_pressed = False
-        self.down_pressed = False
+
+        # Camera/scroll position
+        self.camera_y = 0
 
     def on_show_view(self) -> None:
         arcade.set_background_color(self.background_color)
@@ -47,13 +48,16 @@ class GameView(arcade.View):
     def on_draw(self) -> None:
         self.clear()
 
+        # Set up the camera so it follows the player
+        arcade.set_viewport(0, SCREEN_WIDTH, int(self.camera_y), int(self.camera_y) + SCREEN_HEIGHT)
+
         # Draw the player sprite
         self.player_list.draw()
 
         arcade.draw_text(
             "CS10 Arcade Starter",
             SCREEN_WIDTH / 2,
-            SCREEN_HEIGHT / 2 + 24,
+            int(self.camera_y) + SCREEN_HEIGHT / 2 + 24,
             arcade.color.WHITE,
             28,
             anchor_x="center",
@@ -61,7 +65,7 @@ class GameView(arcade.View):
         arcade.draw_text(
             "Edit game.py (owner) or your game-yourname.py file",
             SCREEN_WIDTH / 2,
-            SCREEN_HEIGHT / 2 - 20,
+            int(self.camera_y) + SCREEN_HEIGHT / 2 - 20,
             arcade.color.LIGHT_GRAY,
             14,
             anchor_x="center",
@@ -73,10 +77,6 @@ class GameView(arcade.View):
             self.left_pressed = True
         elif key == arcade.key.RIGHT:
             self.right_pressed = True
-        elif key == arcade.key.UP:
-            self.up_pressed = True
-        elif key == arcade.key.DOWN:
-            self.down_pressed = True
 
     def on_key_release(self, key, modifiers) -> None:
         """Handle key releases."""
@@ -84,25 +84,20 @@ class GameView(arcade.View):
             self.left_pressed = False
         elif key == arcade.key.RIGHT:
             self.right_pressed = False
-        elif key == arcade.key.UP:
-            self.up_pressed = False
-        elif key == arcade.key.DOWN:
-            self.down_pressed = False
 
     def on_update(self, delta_time: float) -> None:
         """Update game logic."""
         # Always move up slowly
         self.player_sprite.center_y += AUTO_MOVE_SPEED
 
-        # Move based on arrow key presses
+        # Move left/right with arrow keys
         if self.left_pressed:
             self.player_sprite.center_x -= MOVEMENT_SPEED
         if self.right_pressed:
             self.player_sprite.center_x += MOVEMENT_SPEED
-        if self.up_pressed:
-            self.player_sprite.center_y += MOVEMENT_SPEED
-        if self.down_pressed:
-            self.player_sprite.center_y -= MOVEMENT_SPEED
+
+        # Keep camera centered on player
+        self.camera_y = self.player_sprite.center_y - SCREEN_HEIGHT / 2
 
 
 def main() -> None:
