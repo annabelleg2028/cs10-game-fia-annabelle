@@ -74,6 +74,7 @@ class GameView(arcade.View):
                     arcade.color.RED
                 )
 
+            # Draw the player sprite
             self.player_list.draw()
 
             # Draw score
@@ -134,6 +135,9 @@ class GameView(arcade.View):
                 self.player_sprite.center_x = 0
             if self.player_sprite.center_x > SCREEN_WIDTH:
                 self.player_sprite.center_x = SCREEN_WIDTH
+
+            # Keep player Y centered on screen
+            self.player_sprite.center_y = SCREEN_HEIGHT / 2
         except Exception as e:
             print(f"Error in on_update: {e}")
             traceback.print_exc()
