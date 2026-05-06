@@ -2,17 +2,21 @@ import arcade
 import random
 import time
 
-# --- NEW BALANCED SETTINGS ---
-GRID_COLUMNS = 8         # Smaller cells for a tighter grid
-SCROLL_SPEED = 6         # Slower overall world speed
-MOVEMENT_SPEED = 10      # Precise player movement
-PATROL_SPEED = 2         # Slow, predictable moving hazards
+# --- BALANCED STRATEGIC SETTINGS ---
+GRID_COLUMNS = 8
+SCROLL_SPEED = 6
+MOVEMENT_SPEED = 10
+PATROL_SPEED = 2
+
+# Updated Scaling for better visibility
+SPRITE_SCALING_PLAYER = 0.07
+SPRITE_SCALING_HAZARD = 0.45
+SPRITE_SCALING_TOKEN  = 0.35
 # -----------------------------
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-SCREEN_TITLE = "CS10 Arcade: Strategic Micro-Grid"
-SPRITE_SCALING_PLAYER = 0.05 # Scaled down for the 8-column grid
+SCREEN_TITLE = "CS10 Arcade: High Visibility Grid"
 
 class GameView(arcade.View):
     def __init__(self):
@@ -31,7 +35,6 @@ class GameView(arcade.View):
         self.last_hit_time = 0
         self.messages = []
 
-        # Grid Math
         self.col_width = SCREEN_WIDTH / GRID_COLUMNS
         self.row_height = self.col_width
         self.next_spawn_y = 0
@@ -57,18 +60,13 @@ class GameView(arcade.View):
         all_cols = list(range(GRID_COLUMNS))
         occupied_cols = []
 
-        # Allow patrols frequently, but keep them slow
-        can_patrol = self.rows_since_last_patrol >= 0
-
-        if can_patrol and random.random() < 0.35:
-            # --- PATROL ROW ---
+        if self.rows_since_last_patrol >= 0 and random.random() < 0.35:
             h_col = random.choice(all_cols)
             hazard = self.create_hazard(h_col)
             hazard.change_x = PATROL_SPEED if random.random() > 0.5 else -PATROL_SPEED
             self.prev_hazard_cols = [h_col]
             self.rows_since_last_patrol = 0
         else:
-            # --- STATIC ROW ---
             self.rows_since_last_patrol += 1
             banned_cols = set()
             for pc in self.prev_hazard_cols:
@@ -80,29 +78,29 @@ class GameView(arcade.View):
             if not safe_choices:
                 safe_choices = all_cols
 
+            # First Hazard
             h1_col = random.choice(safe_choices)
             occupied_cols.append(h1_col)
             self.create_hazard(h1_col)
 
-            # Keep the 3-cell gap rule (which is even more space in an 8-col grid)
-            potential_h2_cols = [c for c in safe_choices if abs(c - h1_col) >= 4]
-            if potential_h2_cols and random.random() < 0.3:
-                h2_col = random.choice(potential_h2_cols)
-                occupied_cols.append(h2_col)
-                self.create_hazard(h2_col)
+            # Second Hazard (70% Chance)
+            if random.random() < 0.70:
+                potential_h2_cols = [c for c in safe_choices if abs(c - h1_col) >= 3]
+                if potential_h2_cols:
+                    h2_col = random.choice(potential_h2_cols)
+                    occupied_cols.append(h2_col)
+                    self.create_hazard(h2_col)
 
             self.prev_hazard_cols = occupied_cols
 
-            # Spawn Coin
             remaining_cols = [c for c in all_cols if c not in occupied_cols]
-            if remaining_cols and random.random() < 0.6:
+            if remaining_cols and random.random() < 0.5:
                 self.create_coin(random.choice(remaining_cols))
 
         self.next_spawn_y += self.row_height
 
     def create_hazard(self, col):
-        # Slightly smaller hazard scale for the 8-col grid
-        hazard = arcade.Sprite(":resources:images/tiles/bomb.png", 0.35)
+        hazard = arcade.Sprite(":resources:images/tiles/bomb.png", SPRITE_SCALING_HAZARD)
         hazard.center_x = (col * self.col_width) + (self.col_width / 2)
         hazard.center_y = self.next_spawn_y + (self.row_height / 2)
         hazard.change_x = 0
@@ -110,7 +108,7 @@ class GameView(arcade.View):
         return hazard
 
     def create_coin(self, col):
-        token = arcade.Sprite(":resources:images/items/coinGold.png", 0.25)
+        token = arcade.Sprite(":resources:images/items/coinGold.png", SPRITE_SCALING_TOKEN)
         token.center_x = (col * self.col_width) + (self.col_width / 2)
         token.center_y = self.next_spawn_y + (self.row_height / 2)
         token.value = 5
@@ -130,7 +128,6 @@ class GameView(arcade.View):
         self.clear()
         self.background_list.draw()
         self.draw_grid_lines()
-
         self.hazard_list.draw()
         self.token_list.draw()
         self.player_list.draw()
@@ -149,7 +146,6 @@ class GameView(arcade.View):
 
     def on_update(self, delta_time):
         if self.is_game_over: return
-
         self.next_spawn_y -= SCROLL_SPEED
 
         if self.left_pressed and self.player_sprite.left > 0:
@@ -160,11 +156,7 @@ class GameView(arcade.View):
         for hazard in self.hazard_list:
             hazard.center_y -= SCROLL_SPEED
             hazard.center_x += hazard.change_x
-            if hazard.left < 0:
-                hazard.left = 0
-                hazard.change_x *= -1
-            elif hazard.right > SCREEN_WIDTH:
-                hazard.right = SCREEN_WIDTH
+            if hazard.left < 0 or hazard.right > SCREEN_WIDTH:
                 hazard.change_x *= -1
 
         for token in self.token_list:
