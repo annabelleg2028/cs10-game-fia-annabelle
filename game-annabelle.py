@@ -2,15 +2,15 @@ import arcade
 import random
 import time
 
-# --- ADJUSTED SETTINGS ---
-GRID_COLUMNS = 4         # Big cells for clarity
-SCROLL_SPEED = 8         # Much more manageable pace
-MOVEMENT_SPEED = 10      # Standard movement for better control
+# --- PRECISION SETTINGS ---
+GRID_COLUMNS = 4
+SCROLL_SPEED = 9         # The "Sweet Spot" speed
+MOVEMENT_SPEED = 12      # Tuned to match the new scroll rate
 # -------------------------
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-SCREEN_TITLE = "CS10 Arcade: Balanced Overdrive"
+SCREEN_TITLE = "CS10 Arcade: Precision Overdrive"
 SPRITE_SCALING_PLAYER = 0.1
 
 class GameView(arcade.View):
@@ -48,27 +48,26 @@ class GameView(arcade.View):
             bg.center_y = (i * SCREEN_HEIGHT) + (SCREEN_HEIGHT / 2)
             self.background_list.append(bg)
 
-        # Pre-fill screen
+        # Pre-fill screen rows
         while self.next_spawn_y < SCREEN_HEIGHT + self.row_height:
             self.spawn_row()
 
     def spawn_row(self):
-        """Spawns 1 hazard (mandatory) and 1 coin (chance) per row."""
+        """Spawns 1 mandatory hazard and a potential coin, locked to centers."""
         available_cols = list(range(GRID_COLUMNS))
 
-        # 1. THE HAZARD (One per row, no doubles)
-        hazard_choices = [c for c in available_cols if c != self.last_hazard_col]
-        h_col = random.choice(hazard_choices)
+        # Hazard: Guaranteed every row
+        h_choices = [c for c in available_cols if c != self.last_hazard_col]
+        h_col = random.choice(h_choices)
         self.last_hazard_col = h_col
         available_cols.remove(h_col)
 
         hazard = arcade.Sprite(":resources:images/tiles/bomb.png", 0.6)
-        # Lock to cell center
         hazard.center_x = (h_col * self.col_width) + (self.col_width / 2)
         hazard.center_y = self.next_spawn_y + (self.row_height / 2)
         self.hazard_list.append(hazard)
 
-        # 2. THE COIN (Random chance, different cell)
+        # Coin: 50% chance in a different cell
         if random.random() < 0.5:
             t_col = random.choice(available_cols)
             token = arcade.Sprite(":resources:images/items/coinGold.png", 0.5)
@@ -80,12 +79,11 @@ class GameView(arcade.View):
         self.next_spawn_y += self.row_height
 
     def draw_grid_lines(self):
-        # Vertical Lines
+        """Standard grid lines to verify centering."""
         for i in range(GRID_COLUMNS + 1):
             x = i * self.col_width
             arcade.draw_line(x, 0, x, SCREEN_HEIGHT, arcade.color.DARK_GRAY, 2)
 
-        # Horizontal Lines (Sync with spawn anchor)
         line_y = self.next_spawn_y % self.row_height
         while line_y < SCREEN_HEIGHT:
             arcade.draw_line(0, line_y, SCREEN_WIDTH, line_y, arcade.color.DARK_GRAY, 2)
@@ -118,32 +116,30 @@ class GameView(arcade.View):
 
         self.next_spawn_y -= SCROLL_SPEED
 
-        # Input
+        # Movement
         if self.left_pressed and self.player_sprite.left > 0:
             self.player_sprite.center_x -= MOVEMENT_SPEED
         if self.right_pressed and self.player_sprite.right < SCREEN_WIDTH:
             self.player_sprite.center_x += MOVEMENT_SPEED
 
-        # Background Scroll
+        # Scrolling logic
         for bg in self.background_list:
             bg.center_y -= SCROLL_SPEED
             if bg.center_y <= -SCREEN_HEIGHT / 2: bg.center_y += SCREEN_HEIGHT * 2
 
-        # Item Scroll
         for item_list in [self.hazard_list, self.token_list]:
             for item in item_list:
                 item.center_y -= SCROLL_SPEED
 
-        # Refill rows
         while self.next_spawn_y < SCREEN_HEIGHT + self.row_height:
             self.spawn_row()
 
-        # Clean off-screen
+        # Cleanup
         for item_list in [self.hazard_list, self.token_list]:
             for item in item_list:
                 if item.top < -50: item.remove_from_sprite_lists()
 
-        # Hits & Logic
+        # Collision Handling
         curr_time = time.time()
         invincible = (curr_time - self.last_hit_time) < 1.2
         self.player_sprite.alpha = 160 if invincible else 255
