@@ -2,17 +2,17 @@ import arcade
 import random
 import time
 
-# --- GRID SETTINGS ---
-GRID_COLUMNS = 6
-SCROLL_SPEED = 9
-MOVEMENT_SPEED = 12
-PATROL_SPEED = 3         # Slower horizontal movement
+# --- NEW BALANCED SETTINGS ---
+GRID_COLUMNS = 8         # Smaller cells for a tighter grid
+SCROLL_SPEED = 6         # Slower overall world speed
+MOVEMENT_SPEED = 10      # Precise player movement
+PATROL_SPEED = 2         # Slow, predictable moving hazards
 # -----------------------------
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-SCREEN_TITLE = "CS10 Arcade: Spaced Patrols"
-SPRITE_SCALING_PLAYER = 0.07
+SCREEN_TITLE = "CS10 Arcade: Strategic Micro-Grid"
+SPRITE_SCALING_PLAYER = 0.05 # Scaled down for the 8-column grid
 
 class GameView(arcade.View):
     def __init__(self):
@@ -36,8 +36,6 @@ class GameView(arcade.View):
         self.row_height = self.col_width
         self.next_spawn_y = 0
         self.prev_hazard_cols = []
-
-        # Patrol Spacing logic
         self.rows_since_last_patrol = 0
 
     def setup(self):
@@ -56,24 +54,22 @@ class GameView(arcade.View):
             self.spawn_row()
 
     def spawn_row(self):
-        """Spawns row items with a gap between patrol hazards."""
         all_cols = list(range(GRID_COLUMNS))
         occupied_cols = []
 
-        # Only allow a patrol if at least 1 row has passed since the last one
-        can_patrol = self.rows_since_last_patrol > 1
+        # Allow patrols frequently, but keep them slow
+        can_patrol = self.rows_since_last_patrol >= 0
 
-        if can_patrol and random.random() < 0.25:
+        if can_patrol and random.random() < 0.35:
             # --- PATROL ROW ---
             h_col = random.choice(all_cols)
             hazard = self.create_hazard(h_col)
             hazard.change_x = PATROL_SPEED if random.random() > 0.5 else -PATROL_SPEED
             self.prev_hazard_cols = [h_col]
-            self.rows_since_last_patrol = 0 # Reset cooldown
+            self.rows_since_last_patrol = 0
         else:
             # --- STATIC ROW ---
             self.rows_since_last_patrol += 1
-
             banned_cols = set()
             for pc in self.prev_hazard_cols:
                 banned_cols.update([pc, pc - 1, pc + 1])
@@ -88,7 +84,7 @@ class GameView(arcade.View):
             occupied_cols.append(h1_col)
             self.create_hazard(h1_col)
 
-            # 3-cell gap rule
+            # Keep the 3-cell gap rule (which is even more space in an 8-col grid)
             potential_h2_cols = [c for c in safe_choices if abs(c - h1_col) >= 4]
             if potential_h2_cols and random.random() < 0.3:
                 h2_col = random.choice(potential_h2_cols)
@@ -99,13 +95,14 @@ class GameView(arcade.View):
 
             # Spawn Coin
             remaining_cols = [c for c in all_cols if c not in occupied_cols]
-            if remaining_cols and random.random() < 0.5:
+            if remaining_cols and random.random() < 0.6:
                 self.create_coin(random.choice(remaining_cols))
 
         self.next_spawn_y += self.row_height
 
     def create_hazard(self, col):
-        hazard = arcade.Sprite(":resources:images/tiles/bomb.png", 0.45)
+        # Slightly smaller hazard scale for the 8-col grid
+        hazard = arcade.Sprite(":resources:images/tiles/bomb.png", 0.35)
         hazard.center_x = (col * self.col_width) + (self.col_width / 2)
         hazard.center_y = self.next_spawn_y + (self.row_height / 2)
         hazard.change_x = 0
@@ -113,22 +110,20 @@ class GameView(arcade.View):
         return hazard
 
     def create_coin(self, col):
-        token = arcade.Sprite(":resources:images/items/coinGold.png", 0.35)
+        token = arcade.Sprite(":resources:images/items/coinGold.png", 0.25)
         token.center_x = (col * self.col_width) + (self.col_width / 2)
         token.center_y = self.next_spawn_y + (self.row_height / 2)
         token.value = 5
         self.token_list.append(token)
 
     def draw_grid_lines(self):
-        # Vertical
         for i in range(GRID_COLUMNS + 1):
             x = i * self.col_width
-            arcade.draw_line(x, 0, x, SCREEN_HEIGHT, arcade.color.DARK_GRAY, 2)
+            arcade.draw_line(x, 0, x, SCREEN_HEIGHT, arcade.color.DARK_GRAY, 1)
 
-        # Horizontal
         line_y = self.next_spawn_y % self.row_height
         while line_y < SCREEN_HEIGHT:
-            arcade.draw_line(0, line_y, SCREEN_WIDTH, line_y, arcade.color.DARK_GRAY, 2)
+            arcade.draw_line(0, line_y, SCREEN_WIDTH, line_y, arcade.color.DARK_GRAY, 1)
             line_y += self.row_height
 
     def on_draw(self):
@@ -140,13 +135,13 @@ class GameView(arcade.View):
         self.token_list.draw()
         self.player_list.draw()
 
-        arcade.draw_text(f"Score: {self.score}", 20, 20, arcade.color.WHITE, 20, bold=True)
+        arcade.draw_text(f"Score: {self.score}", 20, 20, arcade.color.WHITE, 18, bold=True)
         for i in range(5):
             color = arcade.color.RED if i < self.health else arcade.color.GRAY
-            arcade.draw_circle_filled(SCREEN_WIDTH - 220 + (i * 45), 35, 15, color)
+            arcade.draw_circle_filled(SCREEN_WIDTH - 180 + (i * 35), 35, 12, color)
 
         for msg in self.messages:
-            arcade.draw_text(msg["text"], msg["x"], msg["y"], msg["color"], 24, bold=True, anchor_x="center")
+            arcade.draw_text(msg["text"], msg["x"], msg["y"], msg["color"], 20, bold=True, anchor_x="center")
 
         if self.is_game_over:
             arcade.draw_lrtb_rectangle_filled(0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, (0, 0, 0, 180))
@@ -165,7 +160,11 @@ class GameView(arcade.View):
         for hazard in self.hazard_list:
             hazard.center_y -= SCROLL_SPEED
             hazard.center_x += hazard.change_x
-            if hazard.left < 0 or hazard.right > SCREEN_WIDTH:
+            if hazard.left < 0:
+                hazard.left = 0
+                hazard.change_x *= -1
+            elif hazard.right > SCREEN_WIDTH:
+                hazard.right = SCREEN_WIDTH
                 hazard.change_x *= -1
 
         for token in self.token_list:
@@ -196,7 +195,7 @@ class GameView(arcade.View):
             coin.remove_from_sprite_lists()
 
         for msg in self.messages:
-            msg["y"] += 2
+            msg["y"] += 1.5
             msg["timer"] -= delta_time
         self.messages = [m for m in self.messages if m["timer"] > 0]
 
