@@ -40,22 +40,18 @@ class GameView(arcade.View):
         self.hazard_list = arcade.SpriteList()
         self.token_list = arcade.SpriteList()
 
-        # Setup Player
         self.player_sprite = arcade.Sprite("player2.png", scale=SPRITE_SCALING_PLAYER)
         self.player_sprite.center_x = SCREEN_WIDTH / 2
         self.player_sprite.center_y = 100
         self.player_list.append(self.player_sprite)
 
-        # Setup Scrolling Background
         for i in range(2):
             bg = arcade.SpriteSolidColor(SCREEN_WIDTH, SCREEN_HEIGHT, arcade.color.DARK_SLATE_BLUE)
             bg.center_x = SCREEN_WIDTH / 2
             bg.center_y = (i * SCREEN_HEIGHT) + (SCREEN_HEIGHT / 2)
             self.background_list.append(bg)
 
-        # Create Hazards and Tokens in spaced-out waves
         for i in range(6):
-            # Spread waves out by 250 pixels vertically
             self.create_hazard(start_y=SCREEN_HEIGHT + (i * 250))
             if i % 2 == 0:
                 self.create_token(start_y=SCREEN_HEIGHT + (i * 250) + 125)
@@ -67,27 +63,33 @@ class GameView(arcade.View):
             x = random.randint(100, SCREEN_WIDTH - 100)
             y = start_y if start_y is not None else SCREEN_HEIGHT + 200
 
-            # Check distance against all hazards and tokens
             too_close = False
-            for sprite in self.hazard_list + self.token_list:
-                distance = arcade.get_distance(x, y, sprite.center_x, sprite.center_y)
-                if distance < 150: # Minimum gap of 150 pixels
+
+            # Check hazards
+            for sprite in self.hazard_list:
+                if arcade.get_distance(x, y, sprite.center_x, sprite.center_y) < 150:
                     too_close = True
                     break
 
+            # Check tokens (only if not already too close to a hazard)
+            if not too_close:
+                for sprite in self.token_list:
+                    if arcade.get_distance(x, y, sprite.center_x, sprite.center_y) < 150:
+                        too_close = True
+                        break
+
             if not too_close:
                 return x, y
-        return random.randint(100, SCREEN_WIDTH - 100), start_y # Fallback
+
+        return random.randint(100, SCREEN_WIDTH - 100), start_y
 
     def create_hazard(self, start_y=None):
         hazard = arcade.Sprite(":resources:images/tiles/bomb.png", 0.5)
         hazard.center_x, hazard.center_y = self.get_safe_position(start_y)
 
-        # 80% Stationary, 20% Moving
         hazard.is_stationary = random.random() < 0.80
         hazard.change_x = random.choice([-4, 4]) if not hazard.is_stationary else 0
 
-        # If moving, ensure it starts more centered to avoid immediate wall bounce
         if not hazard.is_stationary:
             hazard.center_x = random.randint(200, SCREEN_WIDTH - 200)
 
@@ -133,19 +135,16 @@ class GameView(arcade.View):
     def on_update(self, delta_time: float) -> None:
         if self.is_game_over: return
 
-        # Update Messages
         for msg in self.messages:
             msg["y"] += 2
             msg["timer"] -= delta_time
         self.messages = [m for m in self.messages if m["timer"] > 0]
 
-        # Player Movement
         if self.left_pressed and self.player_sprite.left > 0:
             self.player_sprite.center_x -= MOVEMENT_SPEED
         if self.right_pressed and self.player_sprite.right < SCREEN_WIDTH:
             self.player_sprite.center_x += MOVEMENT_SPEED
 
-        # Scroll World
         for bg in self.background_list:
             bg.center_y -= SCROLL_SPEED
             if bg.center_y <= -SCREEN_HEIGHT / 2: bg.center_y += SCREEN_HEIGHT * 2
@@ -163,7 +162,6 @@ class GameView(arcade.View):
             if token.top < 0:
                 token.center_x, token.center_y = self.get_safe_position(SCREEN_HEIGHT + 400)
 
-        # Hit Detection & Cooldown
         current_time = time.time()
         invincible = (current_time - self.last_hit_time) < 1.5
         self.player_sprite.alpha = 150 if invincible else 255
@@ -174,7 +172,6 @@ class GameView(arcade.View):
             self.last_hit_time = current_time
             if self.health <= 0: self.is_game_over = True
 
-        # Collecting Tokens
         hits = arcade.check_for_collision_with_list(self.player_sprite, self.token_list)
         for token in hits:
             self.score += token.value
