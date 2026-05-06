@@ -1,11 +1,12 @@
 import arcade
 import random
 import time
+import math
 
 # Constants
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-SCREEN_TITLE = "CS10 Arcade: Balanced Runner"
+SCREEN_TITLE = "CS10 Arcade: Ultra Spaced Runner"
 
 SPRITE_SCALING_PLAYER = 0.08
 MOVEMENT_SPEED = 9
@@ -51,47 +52,49 @@ class GameView(arcade.View):
             bg.center_y = (i * SCREEN_HEIGHT) + (SCREEN_HEIGHT / 2)
             self.background_list.append(bg)
 
-        for i in range(6):
-            self.create_hazard(start_y=SCREEN_HEIGHT + (i * 250))
+        # Build initial waves - Spacing them even further vertically (300 pixels)
+        for i in range(5):
+            self.create_hazard(start_y=SCREEN_HEIGHT + (i * 300))
             if i % 2 == 0:
-                self.create_token(start_y=SCREEN_HEIGHT + (i * 250) + 125)
+                self.create_token(start_y=SCREEN_HEIGHT + (i * 300) + 150)
 
     def get_safe_position(self, start_y):
-        """Finds a position that doesn't overlap with existing sprites."""
-        max_attempts = 10
+        """Finds a spot at least 250 pixels away from any other object."""
+        max_attempts = 50 # Try very hard to find a clear spot
         for _ in range(max_attempts):
-            x = random.randint(100, SCREEN_WIDTH - 100)
+            x = random.randint(150, SCREEN_WIDTH - 150)
             y = start_y if start_y is not None else SCREEN_HEIGHT + 200
 
             too_close = False
 
-            # Check hazards
+            # Check hazards distance
             for sprite in self.hazard_list:
-                if arcade.get_distance(x, y, sprite.center_x, sprite.center_y) < 150:
+                dist = math.sqrt((x - sprite.center_x)**2 + (y - sprite.center_y)**2)
+                if dist < 250: # Increased buffer
                     too_close = True
                     break
 
-            # Check tokens (only if not already too close to a hazard)
             if not too_close:
+                # Check tokens distance
                 for sprite in self.token_list:
-                    if arcade.get_distance(x, y, sprite.center_x, sprite.center_y) < 150:
+                    dist = math.sqrt((x - sprite.center_x)**2 + (y - sprite.center_y)**2)
+                    if dist < 250:
                         too_close = True
                         break
 
             if not too_close:
                 return x, y
 
-        return random.randint(100, SCREEN_WIDTH - 100), start_y
+        # If after 50 tries it can't find a spot, move it further up to wait for room
+        return random.randint(150, SCREEN_WIDTH - 150), (start_y + 100 if start_y else SCREEN_HEIGHT + 300)
 
     def create_hazard(self, start_y=None):
         hazard = arcade.Sprite(":resources:images/tiles/bomb.png", 0.5)
         hazard.center_x, hazard.center_y = self.get_safe_position(start_y)
 
-        hazard.is_stationary = random.random() < 0.80
+        # 85% Stationary to make lanes predictable
+        hazard.is_stationary = random.random() < 0.85
         hazard.change_x = random.choice([-4, 4]) if not hazard.is_stationary else 0
-
-        if not hazard.is_stationary:
-            hazard.center_x = random.randint(200, SCREEN_WIDTH - 200)
 
         self.hazard_list.append(hazard)
 
@@ -102,7 +105,7 @@ class GameView(arcade.View):
         self.token_list.append(token)
 
     def add_message(self, text, x, y, color):
-        self.messages.append({"text": text, "x": x, "y": y, "timer": 1.2, "color": color, "size": 28})
+        self.messages.append({"text": text, "x": x, "y": y, "timer": 1.2, "color": color, "size": 30})
 
     def on_draw(self) -> None:
         self.clear()
@@ -111,11 +114,11 @@ class GameView(arcade.View):
         self.token_list.draw()
         self.player_list.draw()
 
-        # UI
-        arcade.draw_text(f"Score: {self.score}", SCREEN_WIDTH - 170, SCREEN_HEIGHT - 45, arcade.color.WHITE, 24, bold=True)
+        # UI: Score and Health
+        arcade.draw_text(f"Score: {self.score}", SCREEN_WIDTH - 180, SCREEN_HEIGHT - 50, arcade.color.WHITE, 26, bold=True)
         for i in range(5):
             color = arcade.color.RED if i < self.health else arcade.color.GRAY
-            arcade.draw_circle_filled(50 + (i * 40), SCREEN_HEIGHT - 40, 15, color)
+            arcade.draw_circle_filled(60 + (i * 45), SCREEN_HEIGHT - 45, 18, color)
 
         for msg in self.messages:
             arcade.draw_text(msg["text"], msg["x"], msg["y"], msg["color"], msg["size"], bold=True, anchor_x="center")
@@ -154,17 +157,20 @@ class GameView(arcade.View):
             if not hazard.is_stationary:
                 hazard.center_x += hazard.change_x
                 if hazard.left < 0 or hazard.right > SCREEN_WIDTH: hazard.change_x *= -1
+
             if hazard.top < 0:
+                # Recalculate safe position at the top
                 hazard.center_x, hazard.center_y = self.get_safe_position(SCREEN_HEIGHT + 200)
 
         for token in self.token_list:
             token.center_y -= SCROLL_SPEED
             if token.top < 0:
-                token.center_x, token.center_y = self.get_safe_position(SCREEN_HEIGHT + 400)
+                token.center_x, token.center_y = self.get_safe_position(SCREEN_HEIGHT + 300)
 
+        # Hit detection with 1.5s invincibility
         current_time = time.time()
         invincible = (current_time - self.last_hit_time) < 1.5
-        self.player_sprite.alpha = 150 if invincible else 255
+        self.player_sprite.alpha = 130 if invincible else 255
 
         if not invincible and arcade.check_for_collision_with_list(self.player_sprite, self.hazard_list):
             self.health -= 1
@@ -172,6 +178,7 @@ class GameView(arcade.View):
             self.last_hit_time = current_time
             if self.health <= 0: self.is_game_over = True
 
+        # Token collection
         hits = arcade.check_for_collision_with_list(self.player_sprite, self.token_list)
         for token in hits:
             self.score += token.value
@@ -179,7 +186,8 @@ class GameView(arcade.View):
             txt = f"+{token.value}" if token.value > 0 else f"{token.value}"
             self.add_message(txt, token.center_x, token.center_y, color)
 
-            token.center_x, token.center_y = self.get_safe_position(SCREEN_HEIGHT + random.randint(300, 600))
+            # Reposition the token safely far away
+            token.center_x, token.center_y = self.get_safe_position(SCREEN_HEIGHT + random.randint(400, 800))
             token.value = random.choice([1, 1, 5, 5, 10, -5])
 
 def main() -> None:
