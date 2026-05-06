@@ -2,16 +2,16 @@ import arcade
 import random
 import time
 
-# --- COMPACT GRID SETTINGS ---
-GRID_COLUMNS = 6         # More columns = smaller square cells
+# --- GRID SETTINGS ---
+GRID_COLUMNS = 6         # 6 columns allows for the "3 cells apart" rule
 SCROLL_SPEED = 9
 MOVEMENT_SPEED = 12
 # -----------------------------
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-SCREEN_TITLE = "CS10 Arcade: Compact Grid"
-SPRITE_SCALING_PLAYER = 0.07 # Slightly smaller player for smaller cells
+SCREEN_TITLE = "CS10 Arcade: Double Hazard Grid"
+SPRITE_SCALING_PLAYER = 0.07
 
 class GameView(arcade.View):
     def __init__(self):
@@ -34,7 +34,7 @@ class GameView(arcade.View):
         self.col_width = SCREEN_WIDTH / GRID_COLUMNS
         self.row_height = self.col_width
         self.next_spawn_y = 0
-        self.last_hazard_col = -1
+        self.last_hazard_cols = [] # Track multiple hazards from the previous row
 
     def setup(self):
         self.player_sprite = arcade.Sprite("player2.png", scale=SPRITE_SCALING_PLAYER)
@@ -48,36 +48,54 @@ class GameView(arcade.View):
             bg.center_y = (i * SCREEN_HEIGHT) + (SCREEN_HEIGHT / 2)
             self.background_list.append(bg)
 
-        # Fill screen rows
         while self.next_spawn_y < SCREEN_HEIGHT + self.row_height:
             self.spawn_row()
 
     def spawn_row(self):
-        """Spawns 1 mandatory hazard and a potential coin in smaller cells."""
+        """Spawns hazards with the 3-cell distance rule + potential coins."""
+        occupied_cols = []
         available_cols = list(range(GRID_COLUMNS))
 
-        # Hazard: 1 per row
-        h_choices = [c for c in available_cols if c != self.last_hazard_col]
-        h_col = random.choice(h_choices)
-        self.last_hazard_col = h_col
-        available_cols.remove(h_col)
+        # 1. Spawn the first Mandatory Hazard
+        # Try to avoid the exact same spots as the last row for better flow
+        h1_choices = [c for c in available_cols if c not in self.last_hazard_cols]
+        if not h1_choices: h1_choices = available_cols
 
-        # Scaled sprites slightly for smaller grid cells
+        h1_col = random.choice(h1_choices)
+        occupied_cols.append(h1_col)
+        self.create_hazard(h1_col)
+
+        # 2. Check for a Second Hazard (3 cells apart rule)
+        # Rule: abs(col1 - col2) >= 4 (meaning 3 empty cells between them)
+        potential_h2_cols = [c for c in available_cols if abs(c - h1_col) >= 4]
+
+        if potential_h2_cols and random.random() < 0.4: # 40% chance for a second bomb
+            h2_col = random.choice(potential_h2_cols)
+            occupied_cols.append(h2_col)
+            self.create_hazard(h2_col)
+
+        self.last_hazard_cols = occupied_cols # Save for next row's logic
+
+        # 3. Spawn a Coin in any remaining empty cell
+        remaining_cols = [c for c in available_cols if c not in occupied_cols]
+        if remaining_cols and random.random() < 0.5:
+            c_col = random.choice(remaining_cols)
+            self.create_coin(c_col)
+
+        self.next_spawn_y += self.row_height
+
+    def create_hazard(self, col):
         hazard = arcade.Sprite(":resources:images/tiles/bomb.png", 0.45)
-        hazard.center_x = (h_col * self.col_width) + (self.col_width / 2)
+        hazard.center_x = (col * self.col_width) + (self.col_width / 2)
         hazard.center_y = self.next_spawn_y + (self.row_height / 2)
         self.hazard_list.append(hazard)
 
-        # Coin: 50% chance
-        if random.random() < 0.5:
-            t_col = random.choice(available_cols)
-            token = arcade.Sprite(":resources:images/items/coinGold.png", 0.35)
-            token.center_x = (t_col * self.col_width) + (self.col_width / 2)
-            token.center_y = self.next_spawn_y + (self.row_height / 2)
-            token.value = 5
-            self.token_list.append(token)
-
-        self.next_spawn_y += self.row_height
+    def create_coin(self, col):
+        token = arcade.Sprite(":resources:images/items/coinGold.png", 0.35)
+        token.center_x = (col * self.col_width) + (self.col_width / 2)
+        token.center_y = self.next_spawn_y + (self.row_height / 2)
+        token.value = 5
+        self.token_list.append(token)
 
     def draw_grid_lines(self):
         for i in range(GRID_COLUMNS + 1):
