@@ -6,11 +6,14 @@ import math
 # Constants
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-SCREEN_TITLE = "CS10 Arcade: Rhythmic Runner"
+SCREEN_TITLE = "CS10 Arcade: Clean Path Edition"
 
 SPRITE_SCALING_PLAYER = 0.08
 MOVEMENT_SPEED = 9
 SCROLL_SPEED = 7
+
+# 5 Defined Lanes
+LANES = [150, 275, 400, 525, 650]
 
 class GameView(arcade.View):
     def __init__(self) -> None:
@@ -52,45 +55,55 @@ class GameView(arcade.View):
             bg.center_y = (i * SCREEN_HEIGHT) + (SCREEN_HEIGHT / 2)
             self.background_list.append(bg)
 
-        # Spawning: More frequent vertical steps (200px)
-        for i in range(8):
-            self.create_hazard(start_y=SCREEN_HEIGHT + (i * 200))
-            if i % 3 == 0: # Tokens every 3rd row
-                self.create_token(start_y=SCREEN_HEIGHT + (i * 200) + 100)
+        # Spacing out the initial 6 rows
+        for i in range(6):
+            self.create_hazard(start_y=SCREEN_HEIGHT + (i * 250))
+            # Tokens spawn in between hazard rows
+            self.create_token(start_y=SCREEN_HEIGHT + (i * 250) + 125)
 
-    def get_safe_position(self, start_y):
-        """Finds a spot that is horizontally clear of the previous wave."""
-        max_attempts = 20
-        for _ in range(max_attempts):
-            x = random.randint(100, SCREEN_WIDTH - 100)
-            y = start_y if start_y is not None else SCREEN_HEIGHT + 200
+    def get_safe_lane_x(self, target_y):
+        """
+        Ensures a massive buffer. If an object is within 200px vertically,
+        it blocks its own lane AND the lanes next to it.
+        """
+        available_lanes = LANES.copy()
 
-            too_close = False
-            # Check only nearby items (within 180 pixels) to allow more frequency
-            for sprite in self.hazard_list:
-                dist = math.sqrt((x - sprite.center_x)**2 + (y - sprite.center_y)**2)
-                if dist < 180:
-                    too_close = True
-                    break
+        for sprite in self.hazard_list + self.token_list:
+            vertical_dist = abs(sprite.center_y - target_y)
 
-            if not too_close:
-                return x, y
+            # If another object is vertically nearby
+            if vertical_dist < 200:
+                # Block the lane it occupies
+                for lane_x in LANES:
+                    # If this lane is too close to an existing object's X
+                    if abs(lane_x - sprite.center_x) < 200:
+                        if lane_x in available_lanes:
+                            available_lanes.remove(lane_x)
 
-        return random.randint(100, SCREEN_WIDTH - 100), start_y
+        if not available_lanes:
+            # Emergency fallback: pick a lane furthest from the last hazard
+            return random.choice(LANES)
+
+        return random.choice(available_lanes)
 
     def create_hazard(self, start_y=None):
         hazard = arcade.Sprite(":resources:images/tiles/bomb.png", 0.5)
-        hazard.center_x, hazard.center_y = self.get_safe_position(start_y)
+        target_y = start_y if start_y is not None else SCREEN_HEIGHT + 200
+        hazard.center_y = target_y
+        hazard.center_x = self.get_safe_lane_x(target_y)
 
-        # Moving obstacles (Left/Right only)
-        hazard.is_stationary = random.random() < 0.80
-        hazard.change_x = random.choice([-4, 4]) if not hazard.is_stationary else 0
+        # Keep hazards mostly stationary for fairness
+        hazard.is_stationary = random.random() < 0.90
+        hazard.change_x = random.choice([-3, 3]) if not hazard.is_stationary else 0
         self.hazard_list.append(hazard)
 
     def create_token(self, start_y=None):
         token = arcade.Sprite(":resources:images/items/coinGold.png", 0.4)
-        token.center_x, token.center_y = self.get_safe_position(start_y)
-        token.value = random.choice([1, 1, 5, 5, 10, -5])
+        target_y = start_y if start_y is not None else SCREEN_HEIGHT + 300
+        token.center_y = target_y
+        token.center_x = self.get_safe_lane_x(target_y)
+
+        token.value = random.choice([1, 5, 10, -5])
         self.token_list.append(token)
 
     def add_message(self, text, x, y, color):
@@ -144,15 +157,20 @@ class GameView(arcade.View):
             hazard.center_y -= SCROLL_SPEED
             if not hazard.is_stationary:
                 hazard.center_x += hazard.change_x
-                if hazard.left < 0 or hazard.right > SCREEN_WIDTH: hazard.change_x *= -1
+                if hazard.left < 50 or hazard.right > SCREEN_WIDTH - 50:
+                    hazard.change_x *= -1
 
             if hazard.top < 0:
-                hazard.center_x, hazard.center_y = self.get_safe_position(SCREEN_HEIGHT + 100)
+                new_y = SCREEN_HEIGHT + 200
+                hazard.center_y = new_y
+                hazard.center_x = self.get_safe_lane_x(new_y)
 
         for token in self.token_list:
             token.center_y -= SCROLL_SPEED
             if token.top < 0:
-                token.center_x, token.center_y = self.get_safe_position(SCREEN_HEIGHT + 150)
+                new_y = SCREEN_HEIGHT + 200
+                token.center_y = new_y
+                token.center_x = self.get_safe_lane_x(new_y)
 
         current_time = time.time()
         invincible = (current_time - self.last_hit_time) < 1.5
@@ -171,8 +189,10 @@ class GameView(arcade.View):
             txt = f"+{token.value}" if token.value > 0 else f"{token.value}"
             self.add_message(txt, token.center_x, token.center_y, color)
 
-            token.center_x, token.center_y = self.get_safe_position(SCREEN_HEIGHT + random.randint(200, 400))
-            token.value = random.choice([1, 1, 5, 5, 10, -5])
+            new_y = SCREEN_HEIGHT + random.randint(200, 600)
+            token.center_y = new_y
+            token.center_x = self.get_safe_lane_x(new_y)
+            token.value = random.choice([1, 5, 10, -5])
 
 def main() -> None:
     window = arcade.Window(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
