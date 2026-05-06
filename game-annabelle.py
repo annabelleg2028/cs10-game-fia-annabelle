@@ -8,15 +8,15 @@ SCROLL_SPEED = 6
 MOVEMENT_SPEED = 10
 PATROL_SPEED = 2
 
-# Updated Scaling for better visibility
-SPRITE_SCALING_PLAYER = 0.07
-SPRITE_SCALING_HAZARD = 0.45
-SPRITE_SCALING_TOKEN  = 0.35
+# NEW: Much larger scaling for a "chunky" feel
+SPRITE_SCALING_PLAYER = 0.1
+SPRITE_SCALING_HAZARD = 0.6
+SPRITE_SCALING_TOKEN  = 0.5
 # -----------------------------
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-SCREEN_TITLE = "CS10 Arcade: High Visibility Grid"
+SCREEN_TITLE = "CS10 Arcade: Big Sprite Edition"
 
 class GameView(arcade.View):
     def __init__(self):
@@ -60,6 +60,7 @@ class GameView(arcade.View):
         all_cols = list(range(GRID_COLUMNS))
         occupied_cols = []
 
+        # Patrol Check
         if self.rows_since_last_patrol >= 0 and random.random() < 0.35:
             h_col = random.choice(all_cols)
             hazard = self.create_hazard(h_col)
@@ -115,13 +116,14 @@ class GameView(arcade.View):
         self.token_list.append(token)
 
     def draw_grid_lines(self):
+        # Slightly thicker lines for the bigger sprites
         for i in range(GRID_COLUMNS + 1):
             x = i * self.col_width
-            arcade.draw_line(x, 0, x, SCREEN_HEIGHT, arcade.color.DARK_GRAY, 1)
+            arcade.draw_line(x, 0, x, SCREEN_HEIGHT, arcade.color.DARK_GRAY, 2)
 
         line_y = self.next_spawn_y % self.row_height
         while line_y < SCREEN_HEIGHT:
-            arcade.draw_line(0, line_y, SCREEN_WIDTH, line_y, arcade.color.DARK_GRAY, 1)
+            arcade.draw_line(0, line_y, SCREEN_WIDTH, line_y, arcade.color.DARK_GRAY, 2)
             line_y += self.row_height
 
     def on_draw(self):
