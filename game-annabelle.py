@@ -3,14 +3,15 @@ import random
 import time
 
 # --- GRID SETTINGS ---
-GRID_COLUMNS = 6         # 6 columns allows for the "3 cells apart" rule
+GRID_COLUMNS = 6
 SCROLL_SPEED = 9
 MOVEMENT_SPEED = 12
+PATROL_SPEED = 5         # Speed of horizontal moving bombs
 # -----------------------------
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-SCREEN_TITLE = "CS10 Arcade: Double Hazard Grid"
+SCREEN_TITLE = "CS10 Arcade: Patrol Hazards"
 SPRITE_SCALING_PLAYER = 0.07
 
 class GameView(arcade.View):
@@ -34,7 +35,7 @@ class GameView(arcade.View):
         self.col_width = SCREEN_WIDTH / GRID_COLUMNS
         self.row_height = self.col_width
         self.next_spawn_y = 0
-        self.last_hazard_cols = [] # Track multiple hazards from the previous row
+        self.prev_hazard_cols = []
 
     def setup(self):
         self.player_sprite = arcade.Sprite("player2.png", scale=SPRITE_SCALING_PLAYER)
@@ -52,35 +53,47 @@ class GameView(arcade.View):
             self.spawn_row()
 
     def spawn_row(self):
-        """Spawns hazards with the 3-cell distance rule + potential coins."""
-        occupied_cols = []
-        available_cols = list(range(GRID_COLUMNS))
+        """Spawns static hazards, patrol hazards, or coins."""
+        all_cols = list(range(GRID_COLUMNS))
 
-        # 1. Spawn the first Mandatory Hazard
-        # Try to avoid the exact same spots as the last row for better flow
-        h1_choices = [c for c in available_cols if c not in self.last_hazard_cols]
-        if not h1_choices: h1_choices = available_cols
+        # 1. Check for Patrol Row (25% chance)
+        if random.random() < 0.25:
+            # Patrol rows are exclusive - one moving bomb, nothing else.
+            h_col = random.choice(all_cols)
+            hazard = self.create_hazard(h_col)
+            # Give it horizontal velocity
+            hazard.change_x = PATROL_SPEED if random.random() > 0.5 else -PATROL_SPEED
+            # We treat the whole row as "blocked" for diagonal logic next time
+            self.prev_hazard_cols = [c for c in all_cols]
 
-        h1_col = random.choice(h1_choices)
-        occupied_cols.append(h1_col)
-        self.create_hazard(h1_col)
+        else:
+            # 2. Standard Static Row Logic
+            occupied_cols = []
+            banned_cols = set()
+            for pc in self.prev_hazard_cols:
+                banned_cols.update([pc, pc - 1, pc + 1])
 
-        # 2. Check for a Second Hazard (3 cells apart rule)
-        # Rule: abs(col1 - col2) >= 4 (meaning 3 empty cells between them)
-        potential_h2_cols = [c for c in available_cols if abs(c - h1_col) >= 4]
+            safe_choices = [c for c in all_cols if c not in banned_cols]
+            if not safe_choices:
+                safe_choices = [c for c in all_cols if c not in self.prev_hazard_cols]
 
-        if potential_h2_cols and random.random() < 0.4: # 40% chance for a second bomb
-            h2_col = random.choice(potential_h2_cols)
-            occupied_cols.append(h2_col)
-            self.create_hazard(h2_col)
+            h1_col = random.choice(safe_choices)
+            occupied_cols.append(h1_col)
+            self.create_hazard(h1_col)
 
-        self.last_hazard_cols = occupied_cols # Save for next row's logic
+            # Potential second hazard (3-cell gap rule)
+            potential_h2_cols = [c for c in safe_choices if abs(c - h1_col) >= 4]
+            if potential_h2_cols and random.random() < 0.3:
+                h2_col = random.choice(potential_h2_cols)
+                occupied_cols.append(h2_col)
+                self.create_hazard(h2_col)
 
-        # 3. Spawn a Coin in any remaining empty cell
-        remaining_cols = [c for c in available_cols if c not in occupied_cols]
-        if remaining_cols and random.random() < 0.5:
-            c_col = random.choice(remaining_cols)
-            self.create_coin(c_col)
+            self.prev_hazard_cols = occupied_cols
+
+            # Spawn Coin
+            remaining_cols = [c for c in all_cols if c not in occupied_cols]
+            if remaining_cols and random.random() < 0.5:
+                self.create_coin(random.choice(remaining_cols))
 
         self.next_spawn_y += self.row_height
 
@@ -88,7 +101,9 @@ class GameView(arcade.View):
         hazard = arcade.Sprite(":resources:images/tiles/bomb.png", 0.45)
         hazard.center_x = (col * self.col_width) + (self.col_width / 2)
         hazard.center_y = self.next_spawn_y + (self.row_height / 2)
+        hazard.change_x = 0 # Default is static
         self.hazard_list.append(hazard)
+        return hazard
 
     def create_coin(self, col):
         token = arcade.Sprite(":resources:images/items/coinGold.png", 0.35)
@@ -97,20 +112,13 @@ class GameView(arcade.View):
         token.value = 5
         self.token_list.append(token)
 
-    def draw_grid_lines(self):
-        for i in range(GRID_COLUMNS + 1):
-            x = i * self.col_width
-            arcade.draw_line(x, 0, x, SCREEN_HEIGHT, arcade.color.DARK_GRAY, 1)
-
-        line_y = self.next_spawn_y % self.row_height
-        while line_y < SCREEN_HEIGHT:
-            arcade.draw_line(0, line_y, SCREEN_WIDTH, line_y, arcade.color.DARK_GRAY, 1)
-            line_y += self.row_height
-
     def on_draw(self):
         self.clear()
         self.background_list.draw()
-        self.draw_grid_lines()
+
+        # Grid visual guide
+        for i in range(GRID_COLUMNS + 1):
+            arcade.draw_line(i * self.col_width, 0, i * self.col_width, SCREEN_HEIGHT, arcade.color.DARK_GRAY, 1)
 
         self.hazard_list.draw()
         self.token_list.draw()
@@ -133,19 +141,25 @@ class GameView(arcade.View):
 
         self.next_spawn_y -= SCROLL_SPEED
 
+        # Player Movement
         if self.left_pressed and self.player_sprite.left > 0:
             self.player_sprite.center_x -= MOVEMENT_SPEED
         if self.right_pressed and self.player_sprite.right < SCREEN_WIDTH:
             self.player_sprite.center_x += MOVEMENT_SPEED
 
-        for bg in self.background_list:
-            bg.center_y -= SCROLL_SPEED
-            if bg.center_y <= -SCREEN_HEIGHT / 2: bg.center_y += SCREEN_HEIGHT * 2
+        # Scrolling items and Horizontal bouncing
+        for hazard in self.hazard_list:
+            hazard.center_y -= SCROLL_SPEED
+            hazard.center_x += hazard.change_x
 
-        for item_list in [self.hazard_list, self.token_list]:
-            for item in item_list:
-                item.center_y -= SCROLL_SPEED
+            # Bounce logic
+            if hazard.left < 0 or hazard.right > SCREEN_WIDTH:
+                hazard.change_x *= -1
 
+        for token in self.token_list:
+            token.center_y -= SCROLL_SPEED
+
+        # Refill/Clean
         while self.next_spawn_y < SCREEN_HEIGHT + self.row_height:
             self.spawn_row()
 
@@ -153,6 +167,7 @@ class GameView(arcade.View):
             for item in item_list:
                 if item.top < -50: item.remove_from_sprite_lists()
 
+        # Collisions
         curr_time = time.time()
         invincible = (curr_time - self.last_hit_time) < 1.2
         self.player_sprite.alpha = 160 if invincible else 255
