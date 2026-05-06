@@ -5,16 +5,14 @@ import time
 # Constants
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-SCREEN_TITLE = "CS10 Arcade: High-Density Rhythm"
+SCREEN_TITLE = "CS10 Arcade: Feedback Edition"
 
 SPRITE_SCALING_PLAYER = 0.08
-MOVEMENT_SPEED = 10  # Slightly faster to handle denser obstacles
+MOVEMENT_SPEED = 10
 SCROLL_SPEED = 7
 
-# 5 Defined Lanes
 LANES = [150, 275, 400, 525, 650]
-# Tight vertical spacing for "closer" obstacles
-ROW_SPACING = 130
+ROW_SPACING = 140
 
 class GameView(arcade.View):
     def __init__(self) -> None:
@@ -32,13 +30,10 @@ class GameView(arcade.View):
         self.health = 5
         self.score = 0
         self.is_game_over = False
-
-        self.messages = []
         self.last_hit_time = 0
 
-        # Track lane and type to ensure perfect distribution
-        self.last_x = -1
-        self.next_is_hazard = True
+        # New: List to hold floating text notifications
+        self.messages = []
 
     def on_show_view(self) -> None:
         self.setup()
@@ -60,35 +55,36 @@ class GameView(arcade.View):
             bg.center_y = (i * SCREEN_HEIGHT) + (SCREEN_HEIGHT / 2)
             self.background_list.append(bg)
 
-        # Initial dense wave: 10 rows
-        for i in range(10):
-            self.spawn_next_item(SCREEN_HEIGHT + (i * ROW_SPACING))
+        for i in range(8):
+            self.spawn_wave(SCREEN_HEIGHT + (i * ROW_SPACING))
 
-    def spawn_next_item(self, y_pos):
-        """Alternates Hazard/Token and ensures lane separation."""
-        # 1. Pick a lane that is NOT the same as the previous item
-        # This prevents vertical stacking (overlapping coins or bombs)
-        possible_lanes = [l for l in LANES if l != self.last_x]
-        chosen_x = random.choice(possible_lanes)
-        self.last_x = chosen_x
+    def spawn_wave(self, y_pos):
+        # Hazard placement
+        bomb_idx = random.randint(0, len(LANES) - 1)
+        hazard = arcade.Sprite(":resources:images/tiles/bomb.png", 0.5)
+        hazard.center_x = LANES[bomb_idx]
+        hazard.center_y = y_pos
+        self.hazard_list.append(hazard)
 
-        if self.next_is_hazard:
-            item = arcade.Sprite(":resources:images/tiles/bomb.png", 0.5)
-            item.is_stationary = True # Forced stationary for perfect grid fairness
-            self.hazard_list.append(item)
-        else:
-            item = arcade.Sprite(":resources:images/items/coinGold.png", 0.4)
-            item.value = random.choice([1, 5, 10, -5])
-            self.token_list.append(item)
+        # Token placement (at least 2 lanes away)
+        allowed_indices = [i for i in range(len(LANES)) if abs(i - bomb_idx) >= 2]
+        if not allowed_indices: allowed_indices = [i for i in range(len(LANES)) if i != bomb_idx]
 
-        item.center_x = chosen_x
-        item.center_y = y_pos
-
-        # Flip the toggle so the next item is the opposite type
-        self.next_is_hazard = not self.next_is_hazard
+        token = arcade.Sprite(":resources:images/items/coinGold.png", 0.4)
+        token.center_x = LANES[random.choice(allowed_indices)]
+        token.center_y = y_pos + random.randint(-20, 20) # Slight vertical variety
+        token.value = random.choice([1, 5, 10])
+        self.token_list.append(token)
 
     def add_message(self, text, x, y, color):
-        self.messages.append({"text": text, "x": x, "y": y, "timer": 1.0, "color": color, "size": 26})
+        """Creates a floating notification."""
+        self.messages.append({
+            "text": text,
+            "x": x,
+            "y": y,
+            "timer": 1.0, # How long it stays visible
+            "color": color
+        })
 
     def on_draw(self) -> None:
         self.clear()
@@ -97,33 +93,28 @@ class GameView(arcade.View):
         self.token_list.draw()
         self.player_list.draw()
 
-        arcade.draw_text(f"Score: {self.score}", SCREEN_WIDTH - 180, SCREEN_HEIGHT - 50, arcade.color.WHITE, 22, bold=True)
+        # UI
+        arcade.draw_text(f"Score: {self.score}", 20, 20, arcade.color.WHITE, 20, bold=True)
         for i in range(5):
             color = arcade.color.RED if i < self.health else arcade.color.GRAY
-            arcade.draw_circle_filled(50 + (i * 45), SCREEN_HEIGHT - 45, 14, color)
+            arcade.draw_circle_filled(SCREEN_WIDTH - 220 + (i * 45), 35, 15, color)
 
+        # Draw floating notifications
         for msg in self.messages:
-            arcade.draw_text(msg["text"], msg["x"], msg["y"], msg["color"], msg["size"], bold=True, anchor_x="center")
+            arcade.draw_text(msg["text"], msg["x"], msg["y"], msg["color"], 24, bold=True, anchor_x="center")
 
         if self.is_game_over:
             arcade.draw_lrtb_rectangle_filled(0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, (0, 0, 0, 180))
             arcade.draw_text("GAME OVER", SCREEN_WIDTH/2, SCREEN_HEIGHT/2, arcade.color.WHITE, 50, anchor_x="center")
 
-    def on_key_press(self, key, modifiers) -> None:
-        if key == arcade.key.LEFT: self.left_pressed = True
-        elif key == arcade.key.RIGHT: self.right_pressed = True
-
-    def on_key_release(self, key, modifiers) -> None:
-        if key == arcade.key.LEFT: self.left_pressed = False
-        elif key == arcade.key.RIGHT: self.right_pressed = False
-
     def on_update(self, delta_time: float) -> None:
         if self.is_game_over: return
 
+        # Update floating messages
         for msg in self.messages:
-            msg["y"] += 2
+            msg["y"] += 2  # Move up
             msg["timer"] -= delta_time
-        self.messages = [m for m in self.messages if m["timer"] > 0]
+        self.messages = [m for m in self.messages if m["timer"] > 0] # Remove old ones
 
         if self.left_pressed and self.player_sprite.left > 0:
             self.player_sprite.center_x -= MOVEMENT_SPEED
@@ -134,42 +125,47 @@ class GameView(arcade.View):
             bg.center_y -= SCROLL_SPEED
             if bg.center_y <= -SCREEN_HEIGHT / 2: bg.center_y += SCREEN_HEIGHT * 2
 
-        # Hazards
         for hazard in self.hazard_list:
             hazard.center_y -= SCROLL_SPEED
             if hazard.top < 0:
                 hazard.remove_from_sprite_lists()
-                # Spawn next in rhythm
-                self.spawn_next_item(SCREEN_HEIGHT + ROW_SPACING)
+                self.spawn_wave(SCREEN_HEIGHT + ROW_SPACING)
 
-        # Tokens
         for token in self.token_list:
             token.center_y -= SCROLL_SPEED
             if token.top < 0:
                 token.remove_from_sprite_lists()
 
+        # Hits and Feedback
         current_time = time.time()
-        invincible = (current_time - self.last_hit_time) < 1.5
-        self.player_sprite.alpha = 150 if invincible else 255
+        invincible = (current_time - self.last_hit_time) < 1.2
+        self.player_sprite.alpha = 160 if invincible else 255
 
-        if not invincible and arcade.check_for_collision_with_list(self.player_sprite, self.hazard_list):
-            self.health -= 1
-            self.add_message("-1 HEART", self.player_sprite.center_x, self.player_sprite.top + 20, arcade.color.RED)
-            self.last_hit_time = current_time
-            if self.health <= 0: self.is_game_over = True
+        if not invincible:
+            hit_hazard = arcade.check_for_collision_with_list(self.player_sprite, self.hazard_list)
+            if hit_hazard:
+                self.health -= 1
+                self.last_hit_time = current_time
+                self.add_message("-1 HEART", self.player_sprite.center_x, self.player_sprite.top + 20, arcade.color.RED)
+                if self.health <= 0: self.is_game_over = True
 
-        hits = arcade.check_for_collision_with_list(self.player_sprite, self.token_list)
-        for token in hits:
-            self.score += token.value
-            color = arcade.color.GOLD if token.value > 0 else arcade.color.ORANGE_RED
-            txt = f"+{token.value}" if token.value > 0 else f"{token.value}"
-            self.add_message(txt, token.center_x, token.center_y, color)
-            token.remove_from_sprite_lists()
+        coin_hits = arcade.check_for_collision_with_list(self.player_sprite, self.token_list)
+        for coin in coin_hits:
+            self.score += coin.value
+            self.add_message(f"+{coin.value}", coin.center_x, coin.center_y, arcade.color.GOLD)
+            coin.remove_from_sprite_lists()
 
-def main() -> None:
+    def on_key_press(self, key, modifiers):
+        if key == arcade.key.LEFT: self.left_pressed = True
+        elif key == arcade.key.RIGHT: self.right_pressed = True
+
+    def on_key_release(self, key, modifiers):
+        if key == arcade.key.LEFT: self.left_pressed = False
+        elif key == arcade.key.RIGHT: self.right_pressed = False
+
+def main():
     window = arcade.Window(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
-    view = GameView()
-    window.show_view(view)
+    window.show_view(GameView())
     arcade.run()
 
 if __name__ == "__main__":
