@@ -2,21 +2,21 @@ import arcade
 import random
 import time
 
-# --- BALANCED STRATEGIC SETTINGS ---
+# --- STRATEGIC GRID SETTINGS ---
 GRID_COLUMNS = 8
 SCROLL_SPEED = 6
 MOVEMENT_SPEED = 10
 PATROL_SPEED = 2
 
-# NEW: Much larger scaling for a "chunky" feel
-SPRITE_SCALING_PLAYER = 0.1
-SPRITE_SCALING_HAZARD = 0.6
-SPRITE_SCALING_TOKEN  = 0.5
+# Scaling adjustments
+SPRITE_SCALING_PLAYER = 0.08  # Smaller than a cell for maneuverability
+SPRITE_SCALING_HAZARD = 0.6   # Big and dangerous
+SPRITE_SCALING_TOKEN  = 0.5   # Large and easy to see
 # -----------------------------
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-SCREEN_TITLE = "CS10 Arcade: Big Sprite Edition"
+SCREEN_TITLE = "CS10 Arcade: Chunky Grid Balance"
 
 class GameView(arcade.View):
     def __init__(self):
@@ -60,7 +60,7 @@ class GameView(arcade.View):
         all_cols = list(range(GRID_COLUMNS))
         occupied_cols = []
 
-        # Patrol Check
+        # Patrol logic
         if self.rows_since_last_patrol >= 0 and random.random() < 0.35:
             h_col = random.choice(all_cols)
             hazard = self.create_hazard(h_col)
@@ -79,12 +79,12 @@ class GameView(arcade.View):
             if not safe_choices:
                 safe_choices = all_cols
 
-            # First Hazard
+            # Primary Hazard
             h1_col = random.choice(safe_choices)
             occupied_cols.append(h1_col)
             self.create_hazard(h1_col)
 
-            # Second Hazard (70% Chance)
+            # High Frequency Double Hazard (70%)
             if random.random() < 0.70:
                 potential_h2_cols = [c for c in safe_choices if abs(c - h1_col) >= 3]
                 if potential_h2_cols:
@@ -94,8 +94,9 @@ class GameView(arcade.View):
 
             self.prev_hazard_cols = occupied_cols
 
+            # High Frequency Tokens (80%)
             remaining_cols = [c for c in all_cols if c not in occupied_cols]
-            if remaining_cols and random.random() < 0.5:
+            if remaining_cols and random.random() < 0.80:
                 self.create_coin(random.choice(remaining_cols))
 
         self.next_spawn_y += self.row_height
@@ -116,7 +117,6 @@ class GameView(arcade.View):
         self.token_list.append(token)
 
     def draw_grid_lines(self):
-        # Slightly thicker lines for the bigger sprites
         for i in range(GRID_COLUMNS + 1):
             x = i * self.col_width
             arcade.draw_line(x, 0, x, SCREEN_HEIGHT, arcade.color.DARK_GRAY, 2)
