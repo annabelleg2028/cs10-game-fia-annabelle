@@ -2,15 +2,15 @@ import arcade
 import random
 import time
 
-# --- EDITABLE SETTINGS ---
-GRID_COLUMNS = 4         # Big cells
-SCROLL_SPEED = 9         # Faster gameplay
-MOVEMENT_SPEED = 12       # Faster player to match scroll
+# --- ADJUSTED SETTINGS ---
+GRID_COLUMNS = 4         # Big cells for clarity
+SCROLL_SPEED = 8         # Much more manageable pace
+MOVEMENT_SPEED = 10      # Standard movement for better control
 # -------------------------
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-SCREEN_TITLE = "CS10 Arcade: Multi-Spawn Grid"
+SCREEN_TITLE = "CS10 Arcade: Balanced Overdrive"
 SPRITE_SCALING_PLAYER = 0.1
 
 class GameView(arcade.View):
@@ -34,6 +34,7 @@ class GameView(arcade.View):
         self.col_width = SCREEN_WIDTH / GRID_COLUMNS
         self.row_height = self.col_width
         self.next_spawn_y = 0
+        self.last_hazard_col = -1
 
     def setup(self):
         self.player_sprite = arcade.Sprite("player2.png", scale=SPRITE_SCALING_PLAYER)
@@ -47,47 +48,44 @@ class GameView(arcade.View):
             bg.center_y = (i * SCREEN_HEIGHT) + (SCREEN_HEIGHT / 2)
             self.background_list.append(bg)
 
-        # Fill screen initially
+        # Pre-fill screen
         while self.next_spawn_y < SCREEN_HEIGHT + self.row_height:
             self.spawn_row()
 
     def spawn_row(self):
-        """Spawns 1 or 2 items in a single horizontal row, locked to centers."""
+        """Spawns 1 hazard (mandatory) and 1 coin (chance) per row."""
         available_cols = list(range(GRID_COLUMNS))
 
-        # Determine how many items to spawn (1 or 2)
-        num_items = 2 if random.random() < 0.6 else 1
+        # 1. THE HAZARD (One per row, no doubles)
+        hazard_choices = [c for c in available_cols if c != self.last_hazard_col]
+        h_col = random.choice(hazard_choices)
+        self.last_hazard_col = h_col
+        available_cols.remove(h_col)
 
-        for _ in range(num_items):
-            if not available_cols: break
+        hazard = arcade.Sprite(":resources:images/tiles/bomb.png", 0.6)
+        # Lock to cell center
+        hazard.center_x = (h_col * self.col_width) + (self.col_width / 2)
+        hazard.center_y = self.next_spawn_y + (self.row_height / 2)
+        self.hazard_list.append(hazard)
 
-            chosen_col = random.choice(available_cols)
-            available_cols.remove(chosen_col) # Ensure no two items share a cell
-
-            # Calculate the Absolute Center of the Square
-            center_x = (chosen_col * self.col_width) + (self.col_width / 2)
-            center_y = self.next_spawn_y + (self.row_height / 2)
-
-            # Randomly pick Hazard or Token
-            if random.random() < 0.7:
-                item = arcade.Sprite(":resources:images/tiles/bomb.png", 0.6)
-                self.hazard_list.append(item)
-            else:
-                item = arcade.Sprite(":resources:images/items/coinGold.png", 0.5)
-                item.value = 5
-                self.token_list.append(item)
-
-            item.center_x = center_x
-            item.center_y = center_y
+        # 2. THE COIN (Random chance, different cell)
+        if random.random() < 0.5:
+            t_col = random.choice(available_cols)
+            token = arcade.Sprite(":resources:images/items/coinGold.png", 0.5)
+            token.center_x = (t_col * self.col_width) + (self.col_width / 2)
+            token.center_y = self.next_spawn_y + (self.row_height / 2)
+            token.value = 5
+            self.token_list.append(token)
 
         self.next_spawn_y += self.row_height
 
     def draw_grid_lines(self):
-        """Standard visual guide for the grid."""
+        # Vertical Lines
         for i in range(GRID_COLUMNS + 1):
             x = i * self.col_width
             arcade.draw_line(x, 0, x, SCREEN_HEIGHT, arcade.color.DARK_GRAY, 2)
 
+        # Horizontal Lines (Sync with spawn anchor)
         line_y = self.next_spawn_y % self.row_height
         while line_y < SCREEN_HEIGHT:
             arcade.draw_line(0, line_y, SCREEN_WIDTH, line_y, arcade.color.DARK_GRAY, 2)
@@ -120,30 +118,32 @@ class GameView(arcade.View):
 
         self.next_spawn_y -= SCROLL_SPEED
 
-        # Movement
+        # Input
         if self.left_pressed and self.player_sprite.left > 0:
             self.player_sprite.center_x -= MOVEMENT_SPEED
         if self.right_pressed and self.player_sprite.right < SCREEN_WIDTH:
             self.player_sprite.center_x += MOVEMENT_SPEED
 
-        # Scrolling
+        # Background Scroll
         for bg in self.background_list:
             bg.center_y -= SCROLL_SPEED
             if bg.center_y <= -SCREEN_HEIGHT / 2: bg.center_y += SCREEN_HEIGHT * 2
 
+        # Item Scroll
         for item_list in [self.hazard_list, self.token_list]:
             for item in item_list:
                 item.center_y -= SCROLL_SPEED
 
+        # Refill rows
         while self.next_spawn_y < SCREEN_HEIGHT + self.row_height:
             self.spawn_row()
 
-        # Off-screen cleanup
+        # Clean off-screen
         for item_list in [self.hazard_list, self.token_list]:
             for item in item_list:
                 if item.top < -50: item.remove_from_sprite_lists()
 
-        # Invincibility & Collision
+        # Hits & Logic
         curr_time = time.time()
         invincible = (curr_time - self.last_hit_time) < 1.2
         self.player_sprite.alpha = 160 if invincible else 255
