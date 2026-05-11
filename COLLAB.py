@@ -169,20 +169,20 @@ class GameView(arcade.View):
     def row_height(self):
         return ROW_HEIGHT
 
-    def spawn_hazard(self, col):
+    def spawn_hazard(self, col, hazard_kind=None):
         hazard_kind_roll = random.random()
-        if hazard_kind_roll < 0.45:
-            hazard = arcade.SpriteSolidColor(34, 34, (170, 125, 70, 255))
-            hazard.kind = "trash"
-            hazard.damage = 1
-        elif hazard_kind_roll < 0.85:
-            hazard = arcade.SpriteSolidColor(76, 26, (190, 210, 220, 210))
-            hazard.kind = "net"
-            hazard.damage = 1
-        else:
+        if hazard_kind == "boat":
             hazard = arcade.SpriteSolidColor(82, 28, (70, 78, 88, 255))
             hazard.kind = "boat"
             hazard.damage = 2
+        elif hazard_kind_roll < 0.55:
+            hazard = arcade.SpriteSolidColor(34, 34, (170, 125, 70, 255))
+            hazard.kind = "trash"
+            hazard.damage = 1
+        else:
+            hazard = arcade.SpriteSolidColor(76, 26, (190, 210, 220, 210))
+            hazard.kind = "net"
+            hazard.damage = 1
 
         hazard.alpha = 0
         hazard.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
@@ -208,7 +208,8 @@ class GameView(arcade.View):
 
         if self.rows_since_last_patrol >= 0 and random.random() < (0.24 + distance_ratio * 0.18):
             h_col = random.choice(all_cols)
-            hazard = self.spawn_hazard(h_col)
+            occupied_cols.append(h_col)
+            hazard = self.spawn_hazard(h_col, "boat")
             hazard.change_x = PATROL_SPEED if random.random() > 0.5 else -PATROL_SPEED
             self.prev_hazard_cols = [h_col]
             self.rows_since_last_patrol = 0
@@ -230,9 +231,10 @@ class GameView(arcade.View):
             if distance_ratio > 0.70 and random.random() < 0.4:
                 hazard_total += 1
 
-            for _ in range(hazard_total):
+            for _ in range(min(hazard_total, len(safe_choices))):
                 h_col = random.choice(safe_choices)
                 occupied_cols.append(h_col)
+                safe_choices.remove(h_col)
                 self.spawn_hazard(h_col)
 
             self.prev_hazard_cols = occupied_cols
@@ -240,7 +242,10 @@ class GameView(arcade.View):
             remaining_cols = [c for c in all_cols if c not in occupied_cols]
             fish_chance = clamp(0.48 - distance_ratio * 0.18 + (0.18 if self.health <= 2 else 0.0), 0.18, 0.72)
             if remaining_cols and random.random() < fish_chance:
-                self.spawn_token(random.choice(remaining_cols))
+                token_col = random.choice(remaining_cols)
+                occupied_cols.append(token_col)
+                remaining_cols.remove(token_col)
+                self.spawn_token(token_col)
 
             if remaining_cols and random.random() < 0.32 and distance_ratio > 0.15:
                 lane = random.choice(remaining_cols)
@@ -251,6 +256,8 @@ class GameView(arcade.View):
                     neighbor_lanes.append(lane + 1)
                 for token_lane in neighbor_lanes[:2]:
                     if token_lane in remaining_cols:
+                        occupied_cols.append(token_lane)
+                        remaining_cols.remove(token_lane)
                         self.spawn_token(token_lane, is_school=True)
 
         self.next_spawn_y += self.row_height
