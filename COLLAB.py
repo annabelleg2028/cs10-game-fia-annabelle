@@ -258,8 +258,9 @@ class GameView(arcade.View):
         token = arcade.Sprite(texture_path, scale=FISH_SCALE * (1.15 if is_school else 1.0))
         token.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
         token.center_y = self.next_spawn_y + (ROW_HEIGHT / 2)
-        token.value = 10 if is_school else 5
+        token.value = random.choice([-10, -5]) if random.random() < 0.2 else random.choice([5, 10, 15, 20])
         token.kind = "fish"
+        token.is_trash = token.value < 0
         self.token_list.append(token)
         return token
 
@@ -351,37 +352,61 @@ class GameView(arcade.View):
             line_y += self.row_height
 
     def draw_distance_scale(self):
-        scale_x = SCREEN_WIDTH - 34
-        bottom = 125
-        top = 520
-        arcade.draw_line(scale_x, bottom, scale_x, top, arcade.color.WHITE, 2)
-        arcade.draw_text("Distance", scale_x - 8, top + 10, arcade.color.WHITE, 11, anchor_x="right")
-        arcade.draw_text("0", scale_x - 22, bottom - 8, arcade.color.WHITE, 10, anchor_x="right")
-        arcade.draw_text("Alaska", scale_x - 22, top - 8, arcade.color.WHITE, 10, anchor_x="right")
+        panel_left = SCREEN_WIDTH - 156
+        panel_bottom = 92
+        panel_width = 132
+        panel_height = 410
+        arcade.draw_lbwh_rectangle_filled(panel_left, panel_bottom, panel_width, panel_height, (0, 35, 55, 150))
+        arcade.draw_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 28, arcade.color.WHITE, 13, anchor_x="center", bold=True)
 
-        for mark in range(1000, DISTANCE_TO_ALASKA + 1, 1000):
-            ratio = mark / DISTANCE_TO_ALASKA
-            y = bottom + ((top - bottom) * ratio)
-            arcade.draw_line(scale_x - 8, y, scale_x + 8, y, arcade.color.WHITE, 2)
-            arcade.draw_text(f"{mark // 1000}k", scale_x - 24, y - 6, arcade.color.LIGHT_GRAY, 10, anchor_x="right")
+        route = [
+            (panel_left + 82, panel_bottom + 54),
+            (panel_left + 58, panel_bottom + 130),
+            (panel_left + 70, panel_bottom + 205),
+            (panel_left + 48, panel_bottom + 285),
+            (panel_left + 76, panel_bottom + 356),
+        ]
+        for start, end in zip(route, route[1:]):
+            arcade.draw_line(start[0], start[1], end[0], end[1], (200, 235, 230, 255), 4)
 
-        marker_y = bottom + ((top - bottom) * clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0))
-        arcade.draw_circle_filled(scale_x, marker_y, 7, (120, 220, 160, 255))
+        labels = [
+            ("Baja", route[0]),
+            ("CA", route[1]),
+            ("OR/WA", route[2]),
+            ("B.C.", route[3]),
+            ("Alaska", route[4]),
+        ]
+        for label, (x, y) in labels:
+            arcade.draw_circle_filled(x, y, 5, arcade.color.WHITE)
+            arcade.draw_text(label, panel_left + 8, y - 7, (220, 245, 245, 255), 10)
+
+        progress = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
+        segment_progress = progress * (len(route) - 1)
+        segment_index = min(len(route) - 2, int(segment_progress))
+        local_progress = segment_progress - segment_index
+        start = route[segment_index]
+        end = route[segment_index + 1]
+        marker_x = start[0] + ((end[0] - start[0]) * local_progress)
+        marker_y = start[1] + ((end[1] - start[1]) * local_progress)
+        arcade.draw_circle_filled(marker_x, marker_y, 8, (120, 220, 160, 255))
+        arcade.draw_circle_outline(marker_x, marker_y, 10, arcade.color.WHITE, 2)
+        arcade.draw_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 14, arcade.color.GOLD, 12, anchor_x="center", bold=True)
 
     def draw_hud_hearts(self):
-        arcade.draw_text("Health", 18, 42, arcade.color.WHITE, 12)
+        start_x = SCREEN_WIDTH - 150
+        arcade.draw_text("Health", start_x - 8, SCREEN_HEIGHT - 30, arcade.color.WHITE, 12, anchor_x="right")
         for i in range(HEALTH_MAX):
             color = arcade.color.RED if i < self.health else (110, 30, 30, 255)
-            draw_heart(70 + (i * 30), 48, 12, color)
+            draw_heart(start_x + (i * 27), SCREEN_HEIGHT - 24, 11, color)
 
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
-        arcade.draw_lbwh_rectangle_filled(12, 540, 330, 48, (0, 40, 70, 170))
-        arcade.draw_text(f"Score: {self.score}", 24, 556, arcade.color.WHITE, 16, bold=True)
-        arcade.draw_text(f"Level: {level}/{TOTAL_LEVELS}", 145, 556, arcade.color.WHITE, 16, bold=True)
+        arcade.draw_lbwh_rectangle_filled(12, 540, 438, 48, (0, 40, 70, 170))
+        arcade.draw_text(f"Points: {self.score}", 24, 556, arcade.color.WHITE, 16, bold=True)
+        arcade.draw_text(f"Level: {level}/{TOTAL_LEVELS}", 166, 556, arcade.color.WHITE, 16, bold=True)
         arcade.draw_text(
-            f"{int(clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0) * 100)}% to Alaska",
-            250,
+            f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
+            270,
             556,
             arcade.color.WHITE,
             13,
