@@ -24,6 +24,8 @@ class FishSwimGame(arcade.View):
         super().__init__()
         self.ocean = arcade.load_texture(OCEAN_IMAGE)
         self.fish = arcade.Sprite(FISH_IMAGE, scale=FISH_SCALE)
+        self.fish_list = arcade.SpriteList()
+        self.fish_list.append(self.fish)
         self.target_x = SCREEN_WIDTH / 2
         self.target_y = SCREEN_HEIGHT / 2
         self.score = 0
@@ -73,7 +75,7 @@ class FishSwimGame(arcade.View):
                 2,
             )
 
-        self.fish.draw()
+        self.fish_list.draw()
         self.draw_scoreboard()
 
         if self.game_over:
