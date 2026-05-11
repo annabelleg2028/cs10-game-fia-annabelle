@@ -27,7 +27,7 @@ OCEAN_TILE_WIDTH = SCREEN_WIDTH
 OCEAN_TILE_HEIGHT = OCEAN_TILE_WIDTH * (OCEAN_IMAGE_HEIGHT / OCEAN_IMAGE_WIDTH)
 
 GRID_COLUMNS = 8
-SCROLL_SPEED = 2.2
+SCROLL_SPEED = 3.4
 MOVEMENT_SPEED = 8
 PATROL_SPEED = 2
 
@@ -48,20 +48,20 @@ PLAYER_HITBOX_HEIGHT = 62
 WHALE_FORWARD_ANGLE = 0
 
 LEVEL_GRADIENTS = [
-    ((80, 145, 175), (35, 92, 150)),
-    ((95, 160, 155), (42, 105, 150)),
-    ((105, 150, 190), (38, 90, 165)),
-    ((135, 165, 185), (55, 102, 150)),
-    ((120, 175, 145), (40, 118, 135)),
-    ((150, 170, 135), (62, 125, 128)),
-    ((95, 165, 190), (28, 104, 175)),
-    ((125, 145, 205), (48, 80, 165)),
-    ((145, 155, 185), (58, 88, 145)),
-    ((110, 170, 175), (30, 115, 150)),
-    ((145, 178, 165), (55, 125, 140)),
-    ((130, 165, 205), (44, 98, 178)),
-    ((115, 155, 210), (38, 85, 185)),
-    ((165, 190, 205), (65, 125, 178)),
+    ((42, 140, 170), (16, 74, 130)),
+    ((62, 175, 140), (24, 98, 122)),
+    ((58, 110, 200), (24, 60, 150)),
+    ((125, 150, 210), (52, 78, 160)),
+    ((70, 175, 190), (20, 102, 145)),
+    ((145, 172, 125), (55, 118, 118)),
+    ((92, 150, 215), (30, 82, 178)),
+    ((135, 132, 205), (58, 68, 155)),
+    ((82, 175, 150), (26, 110, 128)),
+    ((155, 165, 190), (62, 86, 145)),
+    ((105, 188, 170), (36, 128, 140)),
+    ((90, 142, 218), (30, 82, 188)),
+    ((150, 155, 215), (62, 80, 178)),
+    ((165, 200, 210), (65, 132, 185)),
 ]
 
 LESSONS = {
@@ -307,9 +307,9 @@ class GameView(arcade.View):
 
     def choose_hazard_kind(self):
         if self.current_level == 1:
-            return "net"
+            return "trash" if random.random() < 0.50 else "net"
         if self.current_level == 2:
-            return "boat" if random.random() < 0.42 else "net"
+            return "trash" if random.random() < 0.42 else "net"
 
         roll = random.random()
         if roll < 0.42:
@@ -384,7 +384,7 @@ class GameView(arcade.View):
         distance_ratio = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
         difficulty = self.level_ratio
 
-        can_spawn_boats = self.current_level >= 2
+        can_spawn_boats = self.current_level >= 3
         if can_spawn_boats and self.rows_since_last_patrol >= 0 and random.random() < (0.12 + difficulty * 0.24):
             h_col = random.choice(all_cols)
             occupied_cols.append(h_col)
@@ -420,13 +420,13 @@ class GameView(arcade.View):
 
             remaining_cols = [c for c in all_cols if c not in occupied_cols]
             fish_chance = clamp(0.54 - difficulty * 0.20 + (0.18 if self.health <= 2 else 0.0), 0.20, 0.72)
-            if remaining_cols and random.random() < fish_chance:
+            if self.current_level >= 2 and remaining_cols and random.random() < fish_chance:
                 token_col = random.choice(remaining_cols)
                 occupied_cols.append(token_col)
                 remaining_cols.remove(token_col)
                 self.spawn_token(token_col)
 
-            if remaining_cols and random.random() < 0.32 and distance_ratio > 0.15:
+            if self.current_level >= 2 and remaining_cols and random.random() < 0.32 and distance_ratio > 0.15:
                 lane = random.choice(remaining_cols)
                 neighbor_lanes = [lane]
                 if lane > 0:
@@ -474,7 +474,7 @@ class GameView(arcade.View):
                 band * band_height,
                 SCREEN_WIDTH,
                 band_height + 1,
-                (red, green, blue, 58),
+                (red, green, blue, 118),
             )
 
     def draw_grid_lines(self):
@@ -638,7 +638,7 @@ class GameView(arcade.View):
     def draw_intro(self):
         lines = [
             "You are a grey whale migrating north from the warm Baja California breeding lagoons toward cold feeding waters near Alaska.",
-            "Your objective is to reach Alaska. Level 1 begins with fishing nets, then boats enter the route in Level 2.",
+            "Your objective is to reach Alaska. Level 1 has trash and fishing nets, Level 2 adds fish that may hide trash, and Level 3 adds shipping boats.",
             "The first time you bump into each kind of object, the game pauses to teach you what it means. Hazard lessons are free: you learn without losing a heart.",
             "Move with A/D or the arrow keys. Eat fish for hidden points and follow the coastal route on the right.",
         ]
@@ -731,7 +731,9 @@ class GameView(arcade.View):
         if self.current_level > self.last_level:
             self.last_level = self.current_level
             if self.current_level == 2:
-                self.level_banner_text = "Level 2: Fishing boats enter the route"
+                self.level_banner_text = "Level 2: Fish enter the route"
+            elif self.current_level == 3:
+                self.level_banner_text = "Level 3: Shipping boats enter the route"
             else:
                 self.level_banner_text = f"Level {self.current_level}"
             self.level_banner_timer = 2.4
@@ -764,7 +766,7 @@ class GameView(arcade.View):
 
         difficulty = self.level_ratio
         wave = 1.0 + (0.25 * math.sin(self.distance_traveled / 350.0))
-        current_scroll = clamp(SCROLL_SPEED + ((difficulty ** 1.35) * 5.5) + (wave * 0.35), 2.0, 8.8)
+        current_scroll = clamp(SCROLL_SPEED + ((difficulty ** 1.35) * 4.8) + (wave * 0.35), 3.2, 8.8)
 
         self.distance_traveled += current_scroll
         self.next_spawn_y -= current_scroll
