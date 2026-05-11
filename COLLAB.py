@@ -28,7 +28,7 @@ OCEAN_TILE_WIDTH = SCREEN_WIDTH
 OCEAN_TILE_HEIGHT = OCEAN_TILE_WIDTH * (OCEAN_IMAGE_HEIGHT / OCEAN_IMAGE_WIDTH)
 
 GRID_COLUMNS = 8
-SCROLL_SPEED = 3.4
+SCROLL_SPEED = 3.7
 MOVEMENT_SPEED = 8
 PATROL_SPEED = 2
 
@@ -36,10 +36,12 @@ WHALE_SCALE = 0.13
 FISH_SCALE = 0.07
 PLAYER_START_Y = 120
 
-TOTAL_LEVELS = 14
+TOTAL_LEVELS = 10
 HEALTH_MAX = 5
-DISTANCE_PER_LEVEL = 3800
+DISTANCE_PER_LEVEL = 5200
 DISTANCE_TO_ALASKA = DISTANCE_PER_LEVEL * TOTAL_LEVELS
+LEVEL_TRANSITION_DISTANCE = 520
+LEVEL_TRANSITION_BAND = 86
 
 LANE_WIDTH = SCREEN_WIDTH / GRID_COLUMNS
 ROW_HEIGHT = 80
@@ -50,20 +52,16 @@ WHALE_FORWARD_ANGLE = 0
 GAME_FONT = ("Italianno", "Italiana", "Georgia", "Times New Roman", "Arial")
 
 LEVEL_GRADIENTS = [
-    ((42, 140, 170), (16, 74, 130)),
-    ((62, 175, 140), (24, 98, 122)),
-    ((58, 110, 200), (24, 60, 150)),
-    ((125, 150, 210), (52, 78, 160)),
-    ((70, 175, 190), (20, 102, 145)),
-    ((145, 172, 125), (55, 118, 118)),
-    ((92, 150, 215), (30, 82, 178)),
-    ((135, 132, 205), (58, 68, 155)),
-    ((82, 175, 150), (26, 110, 128)),
-    ((155, 165, 190), (62, 86, 145)),
-    ((105, 188, 170), (36, 128, 140)),
-    ((90, 142, 218), (30, 82, 188)),
-    ((150, 155, 215), (62, 80, 178)),
-    ((165, 200, 210), (65, 132, 185)),
+    ((120, 220, 218), (46, 145, 190)),
+    ((104, 202, 212), (38, 130, 182)),
+    ((88, 184, 206), (32, 114, 172)),
+    ((72, 166, 198), (28, 98, 160)),
+    ((58, 148, 190), (24, 84, 148)),
+    ((48, 130, 180), (20, 72, 136)),
+    ((40, 112, 168), (17, 60, 122)),
+    ((32, 94, 154), (14, 48, 108)),
+    ((26, 78, 138), (11, 38, 94)),
+    ((20, 62, 118), (8, 28, 78)),
 ]
 
 LESSONS = {
@@ -91,6 +89,16 @@ LESSONS = {
 
 def clamp(value, minimum, maximum):
     return max(minimum, min(maximum, value))
+
+
+def smoothstep(value):
+    value = clamp(value, 0.0, 1.0)
+    return value * value * (3 - (2 * value))
+
+
+def blend_color(start, end, amount):
+    amount = clamp(amount, 0.0, 1.0)
+    return tuple(int(start[i] + ((end[i] - start[i]) * amount)) for i in range(3))
 
 
 def rectangles_overlap(a_center_x, a_center_y, a_width, a_height, b_center_x, b_center_y, b_width, b_height):
@@ -419,9 +427,9 @@ class GameView(arcade.View):
                 hazard_total += 1
             if self.current_level >= 5 and random.random() < (0.18 + difficulty * 0.38):
                 hazard_total += 1
-            if self.current_level >= 9 and random.random() < (0.12 + difficulty * 0.34):
+            if self.current_level >= 8 and random.random() < (0.12 + difficulty * 0.34):
                 hazard_total += 1
-            if self.current_level >= 12 and random.random() < (0.10 + difficulty * 0.24):
+            if self.current_level >= 10 and random.random() < (0.10 + difficulty * 0.24):
                 hazard_total += 1
 
             for _ in range(min(hazard_total, len(safe_choices))):
