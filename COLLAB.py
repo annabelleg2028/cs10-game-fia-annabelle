@@ -20,6 +20,11 @@ FISH_IMAGES = [
     ASSET_DIR / "fish4.png",
 ]
 
+OCEAN_IMAGE_WIDTH = 1023
+OCEAN_IMAGE_HEIGHT = 1537
+OCEAN_TILE_WIDTH = SCREEN_WIDTH
+OCEAN_TILE_HEIGHT = OCEAN_TILE_WIDTH * (OCEAN_IMAGE_HEIGHT / OCEAN_IMAGE_WIDTH)
+
 GRID_COLUMNS = 8
 SCROLL_SPEED = 5.0
 MOVEMENT_SPEED = 8
@@ -37,9 +42,25 @@ TOTAL_LEVELS = 10
 LANE_WIDTH = SCREEN_WIDTH / GRID_COLUMNS
 ROW_HEIGHT = 80
 
+PLAYER_HITBOX_WIDTH = 44
+PLAYER_HITBOX_HEIGHT = 62
+
 
 def clamp(value, minimum, maximum):
     return max(minimum, min(maximum, value))
+
+
+def rectangles_overlap(a_center_x, a_center_y, a_width, a_height, b_center_x, b_center_y, b_width, b_height):
+    return (
+        abs(a_center_x - b_center_x) * 2 < (a_width + b_width)
+        and abs(a_center_y - b_center_y) * 2 < (a_height + b_height)
+    )
+
+
+def circle_rectangle_overlap(circle_x, circle_y, radius, rect_x, rect_y, rect_width, rect_height):
+    closest_x = clamp(circle_x, rect_x - rect_width / 2, rect_x + rect_width / 2)
+    closest_y = clamp(circle_y, rect_y - rect_height / 2, rect_y + rect_height / 2)
+    return (circle_x - closest_x) ** 2 + (circle_y - closest_y) ** 2 <= radius ** 2
 
 
 def draw_heart(center_x, center_y, size, color):
@@ -263,11 +284,13 @@ class GameView(arcade.View):
         self.next_spawn_y += self.row_height
 
     def draw_ocean_background(self):
-        for y in (-SCREEN_HEIGHT + self.background_offset, self.background_offset):
+        y = self.background_offset - OCEAN_TILE_HEIGHT
+        while y < SCREEN_HEIGHT:
             arcade.draw_texture_rect(
                 self.ocean,
-                arcade.LBWH(0, y, SCREEN_WIDTH, SCREEN_HEIGHT),
+                arcade.LBWH(0, y, OCEAN_TILE_WIDTH, OCEAN_TILE_HEIGHT),
             )
+            y += OCEAN_TILE_HEIGHT
 
         progress = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
         red = int(90 - 45 * progress)
@@ -336,13 +359,51 @@ class GameView(arcade.View):
         else:
             draw_net(hazard.center_x, hazard.center_y, 1.0)
 
+    def touches_visible_hazard(self, hazard):
+        player_x = self.player_sprite.center_x
+        player_y = self.player_sprite.center_y
+
+        if hazard.kind == "trash":
+            return circle_rectangle_overlap(
+                hazard.center_x,
+                hazard.center_y,
+                15,
+                player_x,
+                player_y,
+                PLAYER_HITBOX_WIDTH,
+                PLAYER_HITBOX_HEIGHT,
+            )
+
+        if hazard.kind == "boat":
+            return rectangles_overlap(
+                player_x,
+                player_y,
+                PLAYER_HITBOX_WIDTH,
+                PLAYER_HITBOX_HEIGHT,
+                hazard.center_x,
+                hazard.center_y + 4,
+                82,
+                38,
+            )
+
+        return rectangles_overlap(
+            player_x,
+            player_y,
+            PLAYER_HITBOX_WIDTH,
+            PLAYER_HITBOX_HEIGHT,
+            hazard.center_x,
+            hazard.center_y,
+            72,
+            24,
+        )
+
     def resolve_collisions(self):
         curr_time = time.time()
         invincible = (curr_time - self.last_hit_time) < 1.0
         self.player_sprite.alpha = 160 if invincible else 255
 
         if not invincible:
-            hits = arcade.check_for_collision_with_list(self.player_sprite, self.hazard_list)
+            hits = [hazard for hazard in self.hazard_list if self.touches_visible_hazard(hazard)]
             if hits:
                 damage = max(hit.damage for hit in hits)
                 self.health -= damage
@@ -391,16 +452,13 @@ class GameView(arcade.View):
 
         self.distance_traveled += current_scroll
         self.next_spawn_y -= current_scroll
-        self.background_offset = (self.background_offset - current_scroll * 0.45) % SCREEN_HEIGHT
+        self.background_offset = (self.background_offset - current_scroll * 0.65) % OCEAN_TILE_HEIGHT
 
         if self.left_pressed:
             self.player_sprite.center_x -= MOVEMENT_SPEED
-            self.player_sprite.angle = 105
         if self.right_pressed:
             self.player_sprite.center_x += MOVEMENT_SPEED
-            self.player_sprite.angle = 75
-        if not self.left_pressed and not self.right_pressed:
-            self.player_sprite.angle = 90
+        self.player_sprite.angle = 90
 
         if self.player_sprite.left < 0:
             self.player_sprite.left = 0
