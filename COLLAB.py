@@ -27,7 +27,7 @@ OCEAN_TILE_WIDTH = SCREEN_WIDTH
 OCEAN_TILE_HEIGHT = OCEAN_TILE_WIDTH * (OCEAN_IMAGE_HEIGHT / OCEAN_IMAGE_WIDTH)
 
 GRID_COLUMNS = 8
-SCROLL_SPEED = 5.0
+SCROLL_SPEED = 2.2
 MOVEMENT_SPEED = 8
 PATROL_SPEED = 2
 
@@ -70,9 +70,6 @@ LESSONS = {
     },
 }
 
-TUTORIAL_TARGETS = ["fish", "trash", "net", "boat", "food_trash"]
-
-
 def clamp(value, minimum, maximum):
     return max(minimum, min(maximum, value))
 
@@ -90,11 +87,11 @@ def circle_rectangle_overlap(circle_x, circle_y, radius, rect_x, rect_y, rect_wi
     return (circle_x - closest_x) ** 2 + (circle_y - closest_y) ** 2 <= radius ** 2
 
 
-def wrap_panel_lines(lines, panel_width, font_size):
-    characters_per_line = max(24, int((panel_width - 68) / (font_size * 0.55)))
+def wrap_panel_lines(lines, panel_width, font_size, side_padding=68):
+    characters_per_line = max(12, int((panel_width - side_padding) / (font_size * 0.58)))
     wrapped = []
     for paragraph in lines:
-        wrapped.extend(textwrap.wrap(paragraph, width=characters_per_line))
+        wrapped.extend(textwrap.wrap(paragraph, width=characters_per_line, break_long_words=True))
         wrapped.append("")
     if wrapped:
         wrapped.pop()
@@ -106,18 +103,28 @@ def draw_panel(center_x, center_y, width, height, title, lines, footer):
     bottom = center_y - height / 2
     arcade.draw_lbwh_rectangle_filled(left, bottom, width, height, (5, 28, 45, 232))
     arcade.draw_lbwh_rectangle_outline(left, bottom, width, height, (170, 230, 240, 255), 2)
-    arcade.draw_text(title, center_x, bottom + height - 52, arcade.color.WHITE, 28, anchor_x="center", bold=True)
 
-    text_y = bottom + height - 92
-    footer_top = bottom + 58
-    for line in wrap_panel_lines(lines, width, 15):
+    title_font_size = 28 if len(title) <= 24 else 24
+    title_lines = wrap_panel_lines([title], width, title_font_size, side_padding=86)
+    title_y = bottom + height - 38
+    for line in title_lines[:2]:
+        arcade.draw_text(line, center_x, title_y, arcade.color.WHITE, title_font_size, anchor_x="center", bold=True)
+        title_y -= title_font_size + 5
+
+    footer_lines = wrap_panel_lines([footer], width, 15, side_padding=86)
+    footer_y = bottom + 34 + ((len(footer_lines) - 1) * 10)
+    for line in footer_lines[:2]:
+        arcade.draw_text(line, center_x, footer_y, arcade.color.GOLD, 15, anchor_x="center", bold=True)
+        footer_y -= 20
+
+    text_y = min(title_y - 20, bottom + height - 92)
+    footer_top = bottom + 68
+    for line in wrap_panel_lines(lines, width, 15, side_padding=76):
         if text_y < footer_top:
             break
         if line:
             arcade.draw_text(line, left + 34, text_y, (225, 245, 245, 255), 15)
         text_y -= 22
-
-    arcade.draw_text(footer, center_x, bottom + 28, arcade.color.GOLD, 16, anchor_x="center", bold=True)
 
 
 def draw_heart(center_x, center_y, size, color):
@@ -210,9 +217,11 @@ class GameView(arcade.View):
         self.messages = []
         self.game_state = "intro"
         self.current_lesson = None
-        self.tutorial_index = 0
         self.lesson_return_state = "playing"
         self.seen_lessons = set()
+        self.last_level = 1
+        self.level_banner_timer = 0.0
+        self.level_banner_text = ""
 
         self.distance_traveled = 0.0
         self.next_spawn_y = 0.0
@@ -241,9 +250,11 @@ class GameView(arcade.View):
         self.messages = []
         self.game_state = "intro"
         self.current_lesson = None
-        self.tutorial_index = 0
         self.lesson_return_state = "playing"
         self.seen_lessons = set()
+        self.last_level = 1
+        self.level_banner_timer = 0.0
+        self.level_banner_text = ""
         self.distance_traveled = 0.0
         self.next_spawn_y = 0.0
         self.prev_hazard_cols = []
@@ -265,51 +276,6 @@ class GameView(arcade.View):
     def level_ratio(self):
         return (self.current_level - 1) / (TOTAL_LEVELS - 1)
 
-    def start_tutorial_level(self):
-        self.hazard_list = arcade.SpriteList()
-        self.token_list = arcade.SpriteList()
-        self.tutorial_index = 0
-        self.seen_lessons = set()
-        self.current_lesson = None
-        self.messages = []
-        self.player_sprite.center_x = SCREEN_WIDTH / 2
-        self.player_sprite.center_y = PLAYER_START_Y
-        self.next_spawn_y = 0.0
-        self.spawn_tutorial_target()
-        self.game_state = "tutorial_play"
-
-    def advance_tutorial(self):
-        self.tutorial_index += 1
-        if self.tutorial_index >= len(TUTORIAL_TARGETS):
-            self.start_migration()
-        else:
-            self.spawn_tutorial_target()
-            self.game_state = "tutorial_play"
-
-    def spawn_tutorial_target(self):
-        self.hazard_list = arcade.SpriteList()
-        self.token_list = arcade.SpriteList()
-        target_kind = TUTORIAL_TARGETS[self.tutorial_index]
-        target_col = min(GRID_COLUMNS - 2, 2 + self.tutorial_index)
-        target_y = SCREEN_HEIGHT + 70
-
-        if target_kind in ("fish", "food_trash"):
-            token = arcade.Sprite(FISH_IMAGES[self.tutorial_index % len(FISH_IMAGES)], scale=FISH_SCALE * 1.2)
-            token.center_x = (target_col * LANE_WIDTH) + (LANE_WIDTH / 2)
-            token.center_y = target_y
-            token.value = 10 if target_kind == "fish" else -10
-            token.kind = "fish"
-            token.is_trash = target_kind == "food_trash"
-            self.token_list.append(token)
-        else:
-            hazard = self.spawn_hazard(target_col, target_kind)
-            hazard.center_y = target_y
-
-    def finish_tutorial_lesson(self):
-        self.current_lesson = None
-        self.last_hit_time = time.time()
-        self.advance_tutorial()
-
     def start_migration(self):
         self.hazard_list = arcade.SpriteList()
         self.token_list = arcade.SpriteList()
@@ -324,6 +290,9 @@ class GameView(arcade.View):
         self.prev_hazard_cols = []
         self.rows_since_last_patrol = 0
         self.background_offset = 0.0
+        self.last_level = 1
+        self.level_banner_timer = 0.0
+        self.level_banner_text = ""
         self.player_sprite.center_x = SCREEN_WIDTH / 2
         self.player_sprite.center_y = PLAYER_START_Y
         self.player_sprite.angle = WHALE_FORWARD_ANGLE
@@ -446,10 +415,30 @@ class GameView(arcade.View):
             y += OCEAN_TILE_HEIGHT
 
         progress = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
-        red = int(90 - 45 * progress)
-        green = int(120 + 65 * progress)
-        blue = int(150 + 55 * progress)
-        arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (red, green, blue, 35))
+        top_color = (
+            int(115 - 54 * progress),
+            int(135 + 58 * progress),
+            int(150 + 45 * progress),
+        )
+        bottom_color = (
+            int(55 - 25 * progress),
+            int(95 + 72 * progress),
+            int(145 + 60 * progress),
+        )
+        bands = 24
+        band_height = SCREEN_HEIGHT / bands
+        for band in range(bands):
+            ratio = band / max(1, bands - 1)
+            red = int(bottom_color[0] + ((top_color[0] - bottom_color[0]) * ratio))
+            green = int(bottom_color[1] + ((top_color[1] - bottom_color[1]) * ratio))
+            blue = int(bottom_color[2] + ((top_color[2] - bottom_color[2]) * ratio))
+            arcade.draw_lbwh_rectangle_filled(
+                0,
+                band * band_height,
+                SCREEN_WIDTH,
+                band_height + 1,
+                (red, green, blue, 46),
+            )
 
     def draw_grid_lines(self):
         line_color = (210, 245, 250, 50)
@@ -529,6 +518,21 @@ class GameView(arcade.View):
         for msg in self.messages:
             arcade.draw_text(msg["text"], msg["x"], msg["y"], msg["color"], 18, bold=True, anchor_x="center")
 
+        if self.level_banner_timer > 0:
+            alpha = int(210 * clamp(self.level_banner_timer / 1.6, 0.0, 1.0))
+            arcade.draw_lbwh_rectangle_filled(210, 264, 380, 72, (0, 35, 55, alpha))
+            arcade.draw_lbwh_rectangle_outline(210, 264, 380, 72, (170, 230, 240, min(255, alpha + 30)), 2)
+            arcade.draw_text(
+                self.level_banner_text,
+                SCREEN_WIDTH / 2,
+                296,
+                arcade.color.WHITE,
+                26,
+                anchor_x="center",
+                anchor_y="center",
+                bold=True,
+            )
+
     def draw_hazard(self, hazard):
         if hazard.kind == "trash":
             draw_trash(hazard.center_x, hazard.center_y, 1.0)
@@ -577,42 +581,28 @@ class GameView(arcade.View):
 
     def start_lesson(self, lesson_key, return_state="playing"):
         if lesson_key in self.seen_lessons:
-            return
+            return False
         self.seen_lessons.add(lesson_key)
         self.current_lesson = LESSONS[lesson_key]
         self.lesson_return_state = return_state
         self.game_state = "lesson"
         self.left_pressed = False
         self.right_pressed = False
+        return True
 
     def draw_intro(self):
         lines = [
             "You are a grey whale migrating north from the warm Baja California breeding lagoons toward cold feeding waters near Alaska.",
             "Your objective is to reach Alaska. Eat fish to gain energy and avoid obstacles like trash, nets, and boats.",
-            "Before the real migration starts, you will play a short intro level where you bump into each thing and learn what it means.",
-            "After the tutorial, move with A/D or the arrow keys. Eat fish for hidden points and follow the coastal route on the right.",
+            "The first time you bump into each kind of object, the game pauses to teach you what it means. Hazard lessons are free: you learn without losing a heart.",
+            "Move with A/D or the arrow keys. Eat fish for hidden points and follow the coastal route on the right.",
         ]
-        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 640, 430, "Grey Whale Migration", lines, "Press SPACE for intro level")
-
-    def draw_tutorial_prompt(self):
-        step = min(self.tutorial_index + 1, len(TUTORIAL_TARGETS))
-        arcade.draw_lbwh_rectangle_filled(150, 24, 500, 50, (0, 35, 55, 180))
-        arcade.draw_text(
-            f"Intro Level {step}/{len(TUTORIAL_TARGETS)}: bump into the object, then read what it teaches.",
-            SCREEN_WIDTH / 2,
-            42,
-            arcade.color.WHITE,
-            13,
-            anchor_x="center",
-            bold=True,
-        )
+        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 640, 430, "Grey Whale Migration", lines, "Press SPACE to start")
 
     def draw_lesson(self):
         if not self.current_lesson:
             return
         title = self.current_lesson["title"]
-        if self.lesson_return_state == "tutorial_play":
-            title = f"Intro Level: {title}"
         draw_panel(
             SCREEN_WIDTH / 2,
             SCREEN_HEIGHT / 2,
@@ -647,16 +637,29 @@ class GameView(arcade.View):
         if not invincible:
             hits = [hazard for hazard in self.hazard_list if self.touches_visible_hazard(hazard)]
             if hits:
+                lesson_key = hits[0].kind
+                if lesson_key not in self.seen_lessons:
+                    hits[0].remove_from_sprite_lists()
+                    self.last_hit_time = curr_time
+                    if self.start_lesson(lesson_key):
+                        return
+
                 damage = max(hit.damage for hit in hits)
                 self.health -= damage
                 self.last_hit_time = curr_time
                 self.add_message(f"-{damage} HEART", self.player_sprite.center_x, self.player_sprite.top + 20, arcade.color.RED)
-                self.start_lesson(hits[0].kind)
+                self.start_lesson(lesson_key)
                 if self.game_state == "lesson":
                     return
 
         hits = arcade.check_for_collision_with_list(self.player_sprite, self.token_list)
         for fish in hits:
+            lesson_key = "food_trash" if fish.is_trash else "fish"
+            if fish.value < 0 and lesson_key not in self.seen_lessons:
+                fish.remove_from_sprite_lists()
+                if self.start_lesson(lesson_key):
+                    return
+
             self.score += fish.value
             if fish.value > 0:
                 self.health = min(HEALTH_MAX, self.health + 1)
@@ -664,8 +667,10 @@ class GameView(arcade.View):
                 self.add_message(f"+{fish.value}", fish.center_x, fish.center_y, arcade.color.GOLD)
             else:
                 self.add_message(str(fish.value), fish.center_x, fish.center_y, arcade.color.RED)
-                self.start_lesson("food_trash")
+                self.start_lesson(lesson_key)
             fish.remove_from_sprite_lists()
+            if fish.value > 0:
+                self.start_lesson(lesson_key)
             if self.game_state == "lesson":
                 return
 
@@ -674,6 +679,14 @@ class GameView(arcade.View):
             msg["y"] += 1.5
             msg["timer"] -= delta_time
         self.messages = [m for m in self.messages if m["timer"] > 0]
+        if self.level_banner_timer > 0:
+            self.level_banner_timer = max(0.0, self.level_banner_timer - delta_time)
+
+    def update_level_banner(self):
+        if self.current_level > self.last_level:
+            self.last_level = self.current_level
+            self.level_banner_text = f"Level {self.current_level}"
+            self.level_banner_timer = 1.6
 
     def on_draw(self):
         self.clear()
@@ -689,8 +702,6 @@ class GameView(arcade.View):
         if self.game_state == "intro":
             arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (0, 0, 0, 175))
             self.draw_intro()
-        elif self.game_state == "tutorial_play":
-            self.draw_tutorial_prompt()
         elif self.game_state == "lesson":
             arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (0, 0, 0, 175))
             self.draw_lesson()
@@ -699,17 +710,13 @@ class GameView(arcade.View):
             self.draw_end_explanation()
 
     def on_update(self, delta_time):
-        if self.game_state == "tutorial_play":
-            self.update_tutorial_level(delta_time)
-            return
-
         if self.game_state != "playing" or self.is_game_over or self.won:
             self.update_messages(delta_time)
             return
 
         difficulty = self.level_ratio
         wave = 1.0 + (0.25 * math.sin(self.distance_traveled / 350.0))
-        current_scroll = clamp(SCROLL_SPEED + (difficulty * 4.0) + wave, 4.0, 10.5)
+        current_scroll = clamp(SCROLL_SPEED + ((difficulty ** 1.35) * 5.5) + (wave * 0.35), 2.0, 8.8)
 
         self.distance_traveled += current_scroll
         self.next_spawn_y -= current_scroll
@@ -745,6 +752,7 @@ class GameView(arcade.View):
                     item.remove_from_sprite_lists()
 
         self.resolve_collisions()
+        self.update_level_banner()
 
         if self.health <= 0:
             self.is_game_over = True
@@ -766,52 +774,18 @@ class GameView(arcade.View):
             self.player_sprite.right = SCREEN_WIDTH
         self.player_sprite.center_y = PLAYER_START_Y
 
-    def update_tutorial_level(self, delta_time):
-        tutorial_scroll = 3.4
-        self.background_offset = (self.background_offset - tutorial_scroll * 0.65) % OCEAN_TILE_HEIGHT
-        self.update_player_controls()
-
-        for hazard in self.hazard_list:
-            hazard.center_y -= tutorial_scroll
-        for token in self.token_list:
-            token.center_y -= tutorial_scroll
-
-        if self.hazard_list and all(hazard.top < -40 for hazard in self.hazard_list):
-            self.spawn_tutorial_target()
-        if self.token_list and all(token.top < -40 for token in self.token_list):
-            self.spawn_tutorial_target()
-
-        hazard_hits = [hazard for hazard in self.hazard_list if self.touches_visible_hazard(hazard)]
-        if hazard_hits:
-            lesson_key = hazard_hits[0].kind
-            self.hazard_list = arcade.SpriteList()
-            self.start_lesson(lesson_key, return_state="tutorial_play")
-            return
-
-        token_hits = arcade.check_for_collision_with_list(self.player_sprite, self.token_list)
-        if token_hits:
-            lesson_key = "food_trash" if token_hits[0].is_trash else "fish"
-            self.token_list = arcade.SpriteList()
-            self.start_lesson(lesson_key, return_state="tutorial_play")
-            return
-
-        self.update_messages(delta_time)
-
     def add_message(self, text, x, y, color):
         self.messages.append({"text": text, "x": x, "y": y, "timer": 1.0, "color": color})
 
     def on_key_press(self, key, modifiers):
         if key in (arcade.key.SPACE, arcade.key.ENTER):
             if self.game_state == "intro":
-                self.start_tutorial_level()
+                self.start_migration()
             elif self.game_state == "lesson":
-                if self.lesson_return_state == "tutorial_play":
-                    self.finish_tutorial_lesson()
-                else:
-                    self.current_lesson = None
-                    self.last_hit_time = time.time()
-                    self.game_state = "playing"
-        elif self.game_state not in ("playing", "tutorial_play"):
+                self.current_lesson = None
+                self.last_hit_time = time.time()
+                self.game_state = "playing"
+        elif self.game_state != "playing":
             return
         elif key in (arcade.key.LEFT, arcade.key.A):
             self.left_pressed = True
