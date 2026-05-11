@@ -1,6 +1,4 @@
-# Combined Grey Whale Migration Game
-
-```python
+python
 import math
 import random
 import time
