@@ -401,16 +401,17 @@ class GameView(arcade.View):
 
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
-        arcade.draw_lbwh_rectangle_filled(12, 540, 438, 48, (0, 40, 70, 170))
-        arcade.draw_text(f"Points: {self.score}", 24, 556, arcade.color.WHITE, 16, bold=True)
-        arcade.draw_text(f"Level: {level}/{TOTAL_LEVELS}", 166, 556, arcade.color.WHITE, 16, bold=True)
+        arcade.draw_lbwh_rectangle_filled(12, 540, 330, 48, (0, 40, 70, 170))
+        arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 540, 336, 48, (0, 40, 70, 170))
+        arcade.draw_text(f"Level: {level}/{TOTAL_LEVELS}", 24, 556, arcade.color.WHITE, 16, bold=True)
         arcade.draw_text(
             f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
-            270,
+            145,
             556,
             arcade.color.WHITE,
             13,
         )
+        arcade.draw_text(f"Points: {self.score}", SCREEN_WIDTH - 348, 556, arcade.color.WHITE, 16, bold=True)
         self.draw_hud_hearts()
         self.draw_distance_scale()
 
@@ -521,6 +522,8 @@ class GameView(arcade.View):
                 self.last_hit_time = curr_time
                 self.add_message(f"-{damage} HEART", self.player_sprite.center_x, self.player_sprite.top + 20, arcade.color.RED)
                 self.start_lesson(hits[0].kind)
+                if self.game_state == "lesson":
+                    return
 
         hits = arcade.check_for_collision_with_list(self.player_sprite, self.token_list)
         for fish in hits:
@@ -533,6 +536,8 @@ class GameView(arcade.View):
                 self.add_message(str(fish.value), fish.center_x, fish.center_y, arcade.color.RED)
                 self.start_lesson("food_trash")
             fish.remove_from_sprite_lists()
+            if self.game_state == "lesson":
+                return
 
     def update_messages(self, delta_time):
         for msg in self.messages:
