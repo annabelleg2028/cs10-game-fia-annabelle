@@ -1,5 +1,6 @@
 import math
 import random
+import textwrap
 import time
 from pathlib import Path
 
@@ -35,9 +36,9 @@ FISH_SCALE = 0.07
 PLAYER_START_Y = 120
 
 HEALTH_MAX = 5
-DISTANCE_TO_ALASKA = 10000
+DISTANCE_TO_ALASKA = 14000
 DISTANCE_PER_LEVEL = 1000
-TOTAL_LEVELS = 10
+TOTAL_LEVELS = 14
 
 LANE_WIDTH = SCREEN_WIDTH / GRID_COLUMNS
 ROW_HEIGHT = 80
@@ -47,6 +48,10 @@ PLAYER_HITBOX_HEIGHT = 62
 WHALE_FORWARD_ANGLE = 0
 
 LESSONS = {
+    "fish": {
+        "title": "Fish",
+        "body": "Fish give the whale energy for the long migration. In the real ocean, grey whales feed on tiny animals and need healthy feeding grounds near Alaska.",
+    },
     "net": {
         "title": "Fishing Net",
         "body": "Lost or active fishing gear can trap whales as they migrate. Entanglement can make it hard to swim, feed, or surface for air.",
@@ -65,7 +70,7 @@ LESSONS = {
     },
 }
 
-TUTORIAL_LESSONS = ["net", "boat", "trash", "food_trash"]
+TUTORIAL_TARGETS = ["fish", "trash", "net", "boat", "food_trash"]
 
 
 def clamp(value, minimum, maximum):
@@ -85,6 +90,17 @@ def circle_rectangle_overlap(circle_x, circle_y, radius, rect_x, rect_y, rect_wi
     return (circle_x - closest_x) ** 2 + (circle_y - closest_y) ** 2 <= radius ** 2
 
 
+def wrap_panel_lines(lines, panel_width, font_size):
+    characters_per_line = max(24, int((panel_width - 68) / (font_size * 0.55)))
+    wrapped = []
+    for paragraph in lines:
+        wrapped.extend(textwrap.wrap(paragraph, width=characters_per_line))
+        wrapped.append("")
+    if wrapped:
+        wrapped.pop()
+    return wrapped
+
+
 def draw_panel(center_x, center_y, width, height, title, lines, footer):
     left = center_x - width / 2
     bottom = center_y - height / 2
@@ -92,10 +108,14 @@ def draw_panel(center_x, center_y, width, height, title, lines, footer):
     arcade.draw_lbwh_rectangle_outline(left, bottom, width, height, (170, 230, 240, 255), 2)
     arcade.draw_text(title, center_x, bottom + height - 52, arcade.color.WHITE, 28, anchor_x="center", bold=True)
 
-    text_y = bottom + height - 105
-    for line in lines:
-        arcade.draw_text(line, left + 34, text_y, (225, 245, 245, 255), 15, width=width - 68, multiline=True)
-        text_y -= 58
+    text_y = bottom + height - 92
+    footer_top = bottom + 58
+    for line in wrap_panel_lines(lines, width, 15):
+        if text_y < footer_top:
+            break
+        if line:
+            arcade.draw_text(line, left + 34, text_y, (225, 245, 245, 255), 15)
+        text_y -= 22
 
     arcade.draw_text(footer, center_x, bottom + 28, arcade.color.GOLD, 16, anchor_x="center", bold=True)
 
@@ -191,6 +211,7 @@ class GameView(arcade.View):
         self.game_state = "intro"
         self.current_lesson = None
         self.tutorial_index = 0
+        self.lesson_return_state = "playing"
         self.seen_lessons = set()
 
         self.distance_traveled = 0.0
@@ -221,6 +242,7 @@ class GameView(arcade.View):
         self.game_state = "intro"
         self.current_lesson = None
         self.tutorial_index = 0
+        self.lesson_return_state = "playing"
         self.seen_lessons = set()
         self.distance_traveled = 0.0
         self.next_spawn_y = 0.0
@@ -243,18 +265,50 @@ class GameView(arcade.View):
     def level_ratio(self):
         return (self.current_level - 1) / (TOTAL_LEVELS - 1)
 
-    def start_tutorial(self):
+    def start_tutorial_level(self):
+        self.hazard_list = arcade.SpriteList()
+        self.token_list = arcade.SpriteList()
         self.tutorial_index = 0
-        self.current_lesson = LESSONS[TUTORIAL_LESSONS[self.tutorial_index]]
-        self.game_state = "tutorial"
+        self.seen_lessons = set()
+        self.current_lesson = None
+        self.messages = []
+        self.player_sprite.center_x = SCREEN_WIDTH / 2
+        self.player_sprite.center_y = PLAYER_START_Y
+        self.next_spawn_y = 0.0
+        self.spawn_tutorial_target()
+        self.game_state = "tutorial_play"
 
     def advance_tutorial(self):
-        self.seen_lessons.add(TUTORIAL_LESSONS[self.tutorial_index])
         self.tutorial_index += 1
-        if self.tutorial_index >= len(TUTORIAL_LESSONS):
+        if self.tutorial_index >= len(TUTORIAL_TARGETS):
             self.start_migration()
         else:
-            self.current_lesson = LESSONS[TUTORIAL_LESSONS[self.tutorial_index]]
+            self.spawn_tutorial_target()
+            self.game_state = "tutorial_play"
+
+    def spawn_tutorial_target(self):
+        self.hazard_list = arcade.SpriteList()
+        self.token_list = arcade.SpriteList()
+        target_kind = TUTORIAL_TARGETS[self.tutorial_index]
+        target_col = min(GRID_COLUMNS - 2, 2 + self.tutorial_index)
+        target_y = SCREEN_HEIGHT + 70
+
+        if target_kind in ("fish", "food_trash"):
+            token = arcade.Sprite(FISH_IMAGES[self.tutorial_index % len(FISH_IMAGES)], scale=FISH_SCALE * 1.2)
+            token.center_x = (target_col * LANE_WIDTH) + (LANE_WIDTH / 2)
+            token.center_y = target_y
+            token.value = 10 if target_kind == "fish" else -10
+            token.kind = "fish"
+            token.is_trash = target_kind == "food_trash"
+            self.token_list.append(token)
+        else:
+            hazard = self.spawn_hazard(target_col, target_kind)
+            hazard.center_y = target_y
+
+    def finish_tutorial_lesson(self):
+        self.current_lesson = None
+        self.last_hit_time = time.time()
+        self.advance_tutorial()
 
     def start_migration(self):
         self.hazard_list = arcade.SpriteList()
@@ -285,7 +339,7 @@ class GameView(arcade.View):
             hazard = arcade.SpriteSolidColor(82, 28, (70, 78, 88, 255))
             hazard.kind = "boat"
             hazard.damage = 2
-        elif hazard_kind_roll < 0.55:
+        elif hazard_kind == "trash" or hazard_kind_roll < 0.55:
             hazard = arcade.SpriteSolidColor(34, 34, (170, 125, 70, 255))
             hazard.kind = "trash"
             hazard.damage = 1
