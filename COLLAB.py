@@ -339,7 +339,15 @@ class GameView(arcade.View):
             hazard = arcade.SpriteSolidColor(82, 28, (70, 78, 88, 255))
             hazard.kind = "boat"
             hazard.damage = 2
-        elif hazard_kind == "trash" or hazard_kind_roll < 0.55:
+        elif hazard_kind == "trash":
+            hazard = arcade.SpriteSolidColor(34, 34, (170, 125, 70, 255))
+            hazard.kind = "trash"
+            hazard.damage = 1
+        elif hazard_kind == "net":
+            hazard = arcade.SpriteSolidColor(76, 26, (190, 210, 220, 210))
+            hazard.kind = "net"
+            hazard.damage = 1
+        elif hazard_kind_roll < 0.55:
             hazard = arcade.SpriteSolidColor(34, 34, (170, 125, 70, 255))
             hazard.kind = "trash"
             hazard.damage = 1
@@ -567,11 +575,12 @@ class GameView(arcade.View):
             24,
         )
 
-    def start_lesson(self, lesson_key):
+    def start_lesson(self, lesson_key, return_state="playing"):
         if lesson_key in self.seen_lessons:
             return
         self.seen_lessons.add(lesson_key)
         self.current_lesson = LESSONS[lesson_key]
+        self.lesson_return_state = return_state
         self.game_state = "lesson"
         self.left_pressed = False
         self.right_pressed = False
@@ -579,17 +588,31 @@ class GameView(arcade.View):
     def draw_intro(self):
         lines = [
             "You are a grey whale migrating north from the warm Baja California breeding lagoons toward cold feeding waters near Alaska.",
-            "Before the real migration starts, you will see a short tutorial about the main threats and food choices in the game.",
+            "Your objective is to reach Alaska. Eat fish to gain energy and avoid obstacles like trash, nets, and boats.",
+            "Before the real migration starts, you will play a short intro level where you bump into each thing and learn what it means.",
             "After the tutorial, move with A/D or the arrow keys. Eat fish for hidden points and follow the coastal route on the right.",
         ]
-        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 610, 390, "Grey Whale Migration", lines, "Press SPACE for tutorial")
+        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 640, 430, "Grey Whale Migration", lines, "Press SPACE for intro level")
+
+    def draw_tutorial_prompt(self):
+        step = min(self.tutorial_index + 1, len(TUTORIAL_TARGETS))
+        arcade.draw_lbwh_rectangle_filled(150, 24, 500, 50, (0, 35, 55, 180))
+        arcade.draw_text(
+            f"Intro Level {step}/{len(TUTORIAL_TARGETS)}: bump into the object, then read what it teaches.",
+            SCREEN_WIDTH / 2,
+            42,
+            arcade.color.WHITE,
+            13,
+            anchor_x="center",
+            bold=True,
+        )
 
     def draw_lesson(self):
         if not self.current_lesson:
             return
         title = self.current_lesson["title"]
-        if self.game_state == "tutorial":
-            title = f"Tutorial: {title}"
+        if self.lesson_return_state == "tutorial_play":
+            title = f"Intro Level: {title}"
         draw_panel(
             SCREEN_WIDTH / 2,
             SCREEN_HEIGHT / 2,
@@ -666,7 +689,9 @@ class GameView(arcade.View):
         if self.game_state == "intro":
             arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (0, 0, 0, 175))
             self.draw_intro()
-        elif self.game_state in ("tutorial", "lesson"):
+        elif self.game_state == "tutorial_play":
+            self.draw_tutorial_prompt()
+        elif self.game_state == "lesson":
             arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (0, 0, 0, 175))
             self.draw_lesson()
         elif self.is_game_over or self.won:
@@ -674,6 +699,10 @@ class GameView(arcade.View):
             self.draw_end_explanation()
 
     def on_update(self, delta_time):
+        if self.game_state == "tutorial_play":
+            self.update_tutorial_level(delta_time)
+            return
+
         if self.game_state != "playing" or self.is_game_over or self.won:
             self.update_messages(delta_time)
             return
@@ -724,20 +753,65 @@ class GameView(arcade.View):
 
         self.update_messages(delta_time)
 
+    def update_player_controls(self):
+        if self.left_pressed:
+            self.player_sprite.center_x -= MOVEMENT_SPEED
+        if self.right_pressed:
+            self.player_sprite.center_x += MOVEMENT_SPEED
+        self.player_sprite.angle = WHALE_FORWARD_ANGLE
+
+        if self.player_sprite.left < 0:
+            self.player_sprite.left = 0
+        if self.player_sprite.right > SCREEN_WIDTH:
+            self.player_sprite.right = SCREEN_WIDTH
+        self.player_sprite.center_y = PLAYER_START_Y
+
+    def update_tutorial_level(self, delta_time):
+        tutorial_scroll = 3.4
+        self.background_offset = (self.background_offset - tutorial_scroll * 0.65) % OCEAN_TILE_HEIGHT
+        self.update_player_controls()
+
+        for hazard in self.hazard_list:
+            hazard.center_y -= tutorial_scroll
+        for token in self.token_list:
+            token.center_y -= tutorial_scroll
+
+        if self.hazard_list and all(hazard.top < -40 for hazard in self.hazard_list):
+            self.spawn_tutorial_target()
+        if self.token_list and all(token.top < -40 for token in self.token_list):
+            self.spawn_tutorial_target()
+
+        hazard_hits = [hazard for hazard in self.hazard_list if self.touches_visible_hazard(hazard)]
+        if hazard_hits:
+            lesson_key = hazard_hits[0].kind
+            self.hazard_list = arcade.SpriteList()
+            self.start_lesson(lesson_key, return_state="tutorial_play")
+            return
+
+        token_hits = arcade.check_for_collision_with_list(self.player_sprite, self.token_list)
+        if token_hits:
+            lesson_key = "food_trash" if token_hits[0].is_trash else "fish"
+            self.token_list = arcade.SpriteList()
+            self.start_lesson(lesson_key, return_state="tutorial_play")
+            return
+
+        self.update_messages(delta_time)
+
     def add_message(self, text, x, y, color):
         self.messages.append({"text": text, "x": x, "y": y, "timer": 1.0, "color": color})
 
     def on_key_press(self, key, modifiers):
         if key in (arcade.key.SPACE, arcade.key.ENTER):
             if self.game_state == "intro":
-                self.start_tutorial()
-            elif self.game_state == "tutorial":
-                self.advance_tutorial()
+                self.start_tutorial_level()
             elif self.game_state == "lesson":
-                self.current_lesson = None
-                self.last_hit_time = time.time()
-                self.game_state = "playing"
-        elif self.game_state != "playing":
+                if self.lesson_return_state == "tutorial_play":
+                    self.finish_tutorial_lesson()
+                else:
+                    self.current_lesson = None
+                    self.last_hit_time = time.time()
+                    self.game_state = "playing"
+        elif self.game_state not in ("playing", "tutorial_play"):
             return
         elif key in (arcade.key.LEFT, arcade.key.A):
             self.left_pressed = True
