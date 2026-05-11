@@ -1,6 +1,7 @@
 """Grey whale migration serious game MVP."""
 
 import random
+from typing import Optional
 
 import arcade
 
@@ -41,7 +42,7 @@ def lerp_color(start, end, amount: float):
 
 
 class GameView(arcade.View):
-    def __init__(self, window: arcade.Window | None = None) -> None:
+    def __init__(self, window: Optional[arcade.Window] = None) -> None:
         super().__init__(window=window)
         self.background_color = arcade.csscolor.DARK_SLATE_BLUE
 
