@@ -93,39 +93,6 @@ def draw_net(center_x, center_y, scale=1.0):
         arcade.draw_line(center_x - width / 2, y, center_x + width / 2, y, (230, 245, 245, 120), 1)
 
 
-def draw_boat(center_x, center_y, scale=1.0):
-    hull_w = 148 * scale
-    hull_h = 52 * scale
-    cabin_w = 42 * scale
-    cabin_h = 26 * scale
-    mast_h = 34 * scale
-
-    hull = [
-        (center_x - hull_w * 0.50, center_y - hull_h * 0.10),
-        (center_x - hull_w * 0.32, center_y - hull_h * 0.42),
-        (center_x + hull_w * 0.28, center_y - hull_h * 0.42),
-        (center_x + hull_w * 0.50, center_y - hull_h * 0.08),
-        (center_x + hull_w * 0.30, center_y + hull_h * 0.28),
-        (center_x - hull_w * 0.38, center_y + hull_h * 0.28),
-    ]
-    arcade.draw_polygon_filled(hull, (122, 82, 44, 255))
-    arcade.draw_lbwh_rectangle_filled(center_x - cabin_w * 0.65, center_y + hull_h * 0.02, cabin_w, cabin_h, (236, 232, 220, 255))
-    arcade.draw_lbwh_rectangle_filled(center_x - cabin_w * 0.05, center_y + hull_h * 0.05, cabin_w * 0.55, cabin_h * 0.65, (214, 206, 190, 255))
-    arcade.draw_line(center_x + hull_w * 0.02, center_y + hull_h * 0.34, center_x + hull_w * 0.02, center_y + hull_h * 0.34 + mast_h, arcade.color.WHITE, 2)
-    arcade.draw_triangle_filled(
-        center_x + hull_w * 0.02,
-        center_y + hull_h * 0.34 + mast_h * 0.8,
-        center_x + hull_w * 0.02,
-        center_y + hull_h * 0.34 + mast_h * 0.2,
-        center_x + hull_w * 0.30,
-        center_y + hull_h * 0.34 + mast_h * 0.55,
-        (215, 235, 240, 170),
-    )
-    arcade.draw_ellipse_filled(center_x - hull_w * 0.18, center_y + hull_h * 0.05, 8 * scale, 8 * scale, arcade.color.WHITE)
-    arcade.draw_ellipse_filled(center_x - hull_w * 0.10, center_y + hull_h * 0.05, 8 * scale, 8 * scale, arcade.color.WHITE)
-    arcade.draw_line(center_x - hull_w * 0.52, center_y - hull_h * 0.12, center_x + hull_w * 0.55, center_y - hull_h * 0.12, (236, 216, 170, 255), 2)
-
-
 class GameView(arcade.View):
     def __init__(self):
         super().__init__()
@@ -135,7 +102,6 @@ class GameView(arcade.View):
         self.player_list = arcade.SpriteList()
         self.hazard_list = arcade.SpriteList()
         self.token_list = arcade.SpriteList()
-        self.boat_list = arcade.SpriteList()
         self.background_list = arcade.SpriteList()
 
         self.left_pressed = False
@@ -152,14 +118,11 @@ class GameView(arcade.View):
         self.next_spawn_y = 0.0
         self.prev_hazard_cols = []
         self.rows_since_last_patrol = 0
-        self.boat_spawn_timer = 0.0
-        self.boat_boost_timer = 0.0
 
     def setup(self):
         self.player_list = arcade.SpriteList()
         self.hazard_list = arcade.SpriteList()
         self.token_list = arcade.SpriteList()
-        self.boat_list = arcade.SpriteList()
         self.background_list = arcade.SpriteList()
 
         self.player_sprite = arcade.Sprite("player2.png", scale=SPRITE_SCALING_PLAYER)
@@ -185,8 +148,6 @@ class GameView(arcade.View):
         self.next_spawn_y = 0.0
         self.prev_hazard_cols = []
         self.rows_since_last_patrol = 0
-        self.boat_spawn_timer = 0.0
-        self.boat_boost_timer = 0.0
 
         while self.next_spawn_y < SCREEN_HEIGHT + ROW_HEIGHT:
             self.spawn_row()
@@ -215,17 +176,6 @@ class GameView(arcade.View):
         token.kind = "fish"
         self.token_list.append(token)
         return token
-
-    def spawn_boat(self):
-        boat = arcade.SpriteSolidColor(150, 58, arcade.color.BROWN)
-        boat.alpha = 0
-        boat.center_x = random.choice([120, SCREEN_WIDTH - 120])
-        boat.center_y = SCREEN_HEIGHT + 80
-        boat.kind = "chaser"
-        boat.seek_speed = 1.6
-        boat.steal_timer = 0.0
-        self.boat_list.append(boat)
-        return boat
 
     def spawn_row(self):
         all_cols = list(range(GRID_COLUMNS))
@@ -320,17 +270,12 @@ class GameView(arcade.View):
             color = arcade.color.RED if i < self.health else arcade.color.GRAY
             draw_heart(70 + (i * 30), 48, 12, color)
 
-    def draw_boat_hud_warning(self):
-        if self.boat_list:
-            arcade.draw_text("Boat nearby", SCREEN_WIDTH / 2, SCREEN_HEIGHT - 25, arcade.color.ORANGE, 13, anchor_x="center")
-
     def draw_ui(self):
         arcade.draw_text(f"Score: {self.score}", 20, 20, arcade.color.WHITE, 18, bold=True)
         arcade.draw_text(f"Level: {min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)}", 20, SCREEN_HEIGHT - 30, arcade.color.WHITE, 14, bold=True)
         arcade.draw_text(f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA}", 20, SCREEN_HEIGHT - 52, arcade.color.WHITE, 13)
         self.draw_hud_hearts()
         self.draw_distance_scale()
-        self.draw_boat_hud_warning()
 
         for msg in self.messages:
             arcade.draw_text(msg["text"], msg["x"], msg["y"], msg["color"], 18, bold=True, anchor_x="center")
@@ -344,50 +289,6 @@ class GameView(arcade.View):
     def draw_token(self, token):
         draw_fish(token.center_x, token.center_y, 1.0, arcade.color.GOLD)
 
-    def draw_boat_sprite(self, boat):
-        draw_boat(boat.center_x, boat.center_y, 1.0)
-
-    def update_boats(self, delta_time):
-        if not self.boat_list:
-            self.boat_spawn_timer += delta_time
-            spawn_interval = clamp(7.0 - (self.distance_traveled / 2000), 3.5, 7.0)
-            if self.distance_traveled > 600 and self.boat_spawn_timer >= spawn_interval:
-                self.spawn_boat()
-                self.boat_spawn_timer = 0.0
-            return
-
-        for boat in self.boat_list:
-            boat.center_y -= SCROLL_SPEED + 0.8
-            boat.seek_speed = 1.6 + (self.distance_traveled / 3000) + (0.5 if self.health <= 2 else 0.0)
-
-            target_x = self.player_sprite.center_x
-            nearby_tokens = [
-                token for token in self.token_list
-                if abs(token.center_y - boat.center_y) < 160
-            ]
-            if nearby_tokens:
-                nearby_tokens.sort(key=lambda token: abs(token.center_x - boat.center_x))
-                target_x = nearby_tokens[0].center_x
-
-            if boat.center_x < target_x:
-                boat.center_x += boat.seek_speed
-            elif boat.center_x > target_x:
-                boat.center_x -= boat.seek_speed
-
-            if boat.left < 0:
-                boat.left = 0
-            if boat.right > SCREEN_WIDTH:
-                boat.right = SCREEN_WIDTH
-
-            stolen_tokens = arcade.check_for_collision_with_list(boat, self.token_list)
-            for token in stolen_tokens:
-                self.add_message("Boat stole fish", token.center_x, token.center_y, arcade.color.ORANGE)
-                token.remove_from_sprite_lists()
-                boat.seek_speed = clamp(boat.seek_speed + 0.25, 1.6, 4.0)
-
-            if boat.top < -80:
-                boat.remove_from_sprite_lists()
-
     def resolve_collisions(self):
         curr_time = time.time()
         invincible = (curr_time - self.last_hit_time) < 1.0
@@ -398,13 +299,6 @@ class GameView(arcade.View):
                 self.health -= 1
                 self.last_hit_time = curr_time
                 self.add_message("-1 HEART", self.player_sprite.center_x, self.player_sprite.top + 20, arcade.color.RED)
-
-        if not invincible:
-            boat_hits = arcade.check_for_collision_with_list(self.player_sprite, self.boat_list)
-            if boat_hits:
-                self.health -= 2
-                self.last_hit_time = curr_time
-                self.add_message("-2 HEARTS", self.player_sprite.center_x, self.player_sprite.top + 20, arcade.color.ORANGE_RED)
 
         hits = arcade.check_for_collision_with_list(self.player_sprite, self.token_list)
         for fish in hits:
@@ -428,8 +322,6 @@ class GameView(arcade.View):
             self.draw_hazard(hazard)
         for token in self.token_list:
             self.draw_token(token)
-        for boat in self.boat_list:
-            self.draw_boat_sprite(boat)
 
         self.player_list.draw()
         self.draw_ui()
@@ -451,7 +343,6 @@ class GameView(arcade.View):
 
         self.distance_traveled += current_scroll
         self.next_spawn_y -= current_scroll
-        self.boat_spawn_timer += delta_time
 
         if self.left_pressed:
             self.player_sprite.center_x -= MOVEMENT_SPEED
@@ -481,7 +372,6 @@ class GameView(arcade.View):
                 if item.top < -60:
                     item.remove_from_sprite_lists()
 
-        self.update_boats(delta_time)
         self.resolve_collisions()
 
         if self.health <= 0:
