@@ -612,7 +612,7 @@ class GameView(arcade.View):
         if self.game_state == "intro":
             arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (0, 0, 0, 175))
             self.draw_intro()
-        elif self.game_state == "lesson":
+        elif self.game_state in ("tutorial", "lesson"):
             arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (0, 0, 0, 175))
             self.draw_lesson()
         elif self.is_game_over or self.won:
@@ -624,9 +624,9 @@ class GameView(arcade.View):
             self.update_messages(delta_time)
             return
 
-        distance_ratio = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
+        difficulty = self.level_ratio
         wave = 1.0 + (0.25 * math.sin(self.distance_traveled / 350.0))
-        current_scroll = clamp(SCROLL_SPEED + (distance_ratio * 2.8) + wave, 4.0, 9.5)
+        current_scroll = clamp(SCROLL_SPEED + (difficulty * 4.0) + wave, 4.0, 10.5)
 
         self.distance_traveled += current_scroll
         self.next_spawn_y -= current_scroll
@@ -676,7 +676,9 @@ class GameView(arcade.View):
     def on_key_press(self, key, modifiers):
         if key in (arcade.key.SPACE, arcade.key.ENTER):
             if self.game_state == "intro":
-                self.game_state = "playing"
+                self.start_tutorial()
+            elif self.game_state == "tutorial":
+                self.advance_tutorial()
             elif self.game_state == "lesson":
                 self.current_lesson = None
                 self.last_hit_time = time.time()
