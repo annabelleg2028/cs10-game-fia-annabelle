@@ -457,14 +457,6 @@ class GameView(arcade.View):
         self.next_spawn_y += self.row_height
 
     def draw_ocean_background(self):
-        y = self.background_offset - OCEAN_TILE_HEIGHT
-        while y < SCREEN_HEIGHT:
-            arcade.draw_texture_rect(
-                self.ocean,
-                arcade.LBWH(0, y, OCEAN_TILE_WIDTH, OCEAN_TILE_HEIGHT),
-            )
-            y += OCEAN_TILE_HEIGHT
-
         level_index = self.current_level - 1
         local_progress = (self.distance_traveled % DISTANCE_PER_LEVEL) / DISTANCE_PER_LEVEL
         top_start, bottom_start = LEVEL_GRADIENTS[level_index]
@@ -479,6 +471,27 @@ class GameView(arcade.View):
         )
         bands = 24
         band_height = SCREEN_HEIGHT / bands
+        for band in range(bands):
+            ratio = band / max(1, bands - 1)
+            red = int(bottom_color[0] + ((top_color[0] - bottom_color[0]) * ratio))
+            green = int(bottom_color[1] + ((top_color[1] - bottom_color[1]) * ratio))
+            blue = int(bottom_color[2] + ((top_color[2] - bottom_color[2]) * ratio))
+            arcade.draw_lbwh_rectangle_filled(
+                0,
+                band * band_height,
+                SCREEN_WIDTH,
+                band_height + 1,
+                (red, green, blue, 255),
+            )
+
+        y = self.background_offset - OCEAN_TILE_HEIGHT
+        while y < SCREEN_HEIGHT:
+            arcade.draw_texture_rect(
+                self.ocean,
+                arcade.LBWH(0, y, OCEAN_TILE_WIDTH, OCEAN_TILE_HEIGHT),
+            )
+            y += OCEAN_TILE_HEIGHT
+
         for band in range(bands):
             ratio = band / max(1, bands - 1)
             red = int(bottom_color[0] + ((top_color[0] - bottom_color[0]) * ratio))
@@ -509,7 +522,7 @@ class GameView(arcade.View):
         panel_width = 132
         panel_height = 410
         arcade.draw_lbwh_rectangle_filled(panel_left, panel_bottom, panel_width, panel_height, (0, 35, 55, 150))
-        arcade.draw_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 28, arcade.color.WHITE, 13, anchor_x="center", bold=True)
+        draw_game_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 28, arcade.color.WHITE, 13, anchor_x="center", bold=True)
 
         route = [
             (panel_left + 82, panel_bottom + 54),
@@ -530,7 +543,7 @@ class GameView(arcade.View):
         ]
         for label, (x, y) in labels:
             arcade.draw_circle_filled(x, y, 5, arcade.color.WHITE)
-            arcade.draw_text(label, panel_left + 8, y - 7, (220, 245, 245, 255), 10)
+            draw_game_text(label, panel_left + 8, y - 7, (220, 245, 245, 255), 10)
 
         progress = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
         segment_progress = progress * (len(route) - 1)
@@ -542,36 +555,41 @@ class GameView(arcade.View):
         marker_y = start[1] + ((end[1] - start[1]) * local_progress)
         arcade.draw_circle_filled(marker_x, marker_y, 8, (120, 220, 160, 255))
         arcade.draw_circle_outline(marker_x, marker_y, 10, arcade.color.WHITE, 2)
-        arcade.draw_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 14, arcade.color.GOLD, 12, anchor_x="center", bold=True)
+        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 14, arcade.color.GOLD, 12, anchor_x="center", bold=True)
 
     def draw_hud_hearts(self):
         panel_left = SCREEN_WIDTH - 360
         heart_gap = 28
+        heart_size = 24
         hearts_width = (HEALTH_MAX - 1) * heart_gap
         start_x = panel_left + 230 - (hearts_width / 2)
-        arcade.draw_text("Health", start_x - 14, SCREEN_HEIGHT - 31, arcade.color.WHITE, 12, anchor_x="right")
+        draw_game_text("Health", start_x - 14, SCREEN_HEIGHT - 31, arcade.color.WHITE, 12, anchor_x="right")
         for i in range(HEALTH_MAX):
-            color = arcade.color.RED if i < self.health else (110, 30, 30, 255)
-            draw_heart(start_x + (i * heart_gap), SCREEN_HEIGHT - 25, 12, color)
+            alpha = 255 if i < self.health else 70
+            arcade.draw_texture_rect(
+                self.heart_texture,
+                arcade.LBWH(start_x + (i * heart_gap) - heart_size / 2, SCREEN_HEIGHT - 37, heart_size, heart_size),
+                alpha=alpha,
+            )
 
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
         arcade.draw_lbwh_rectangle_filled(12, 540, 330, 48, (0, 40, 70, 170))
         arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 540, 336, 48, (0, 40, 70, 170))
-        arcade.draw_text(f"Level: {level}/{TOTAL_LEVELS}", 24, 556, arcade.color.WHITE, 16, bold=True)
-        arcade.draw_text(
+        draw_game_text(f"Level: {level}/{TOTAL_LEVELS}", 24, 556, arcade.color.WHITE, 16, bold=True)
+        draw_game_text(
             f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
             145,
             556,
             arcade.color.WHITE,
             13,
         )
-        arcade.draw_text(f"Points: {self.score}", SCREEN_WIDTH - 348, 556, arcade.color.WHITE, 16, bold=True)
+        draw_game_text(f"Points: {self.score}", SCREEN_WIDTH - 348, 556, arcade.color.WHITE, 16, bold=True)
         self.draw_hud_hearts()
         self.draw_distance_scale()
 
         for msg in self.messages:
-            arcade.draw_text(msg["text"], msg["x"], msg["y"], msg["color"], 18, bold=True, anchor_x="center")
+            draw_game_text(msg["text"], msg["x"], msg["y"], msg["color"], 18, bold=True, anchor_x="center")
 
         if self.level_banner_timer > 0:
             alpha = int(218 * clamp(self.level_banner_timer / 2.4, 0.0, 1.0))
@@ -581,7 +599,7 @@ class GameView(arcade.View):
             banner_lines = wrap_panel_lines([self.level_banner_text], 420, banner_font_size, side_padding=56)[:2]
             banner_y = 308 + ((len(banner_lines) - 1) * 12)
             for line in banner_lines:
-                arcade.draw_text(
+                draw_game_text(
                     line,
                     SCREEN_WIDTH / 2,
                     banner_y,
@@ -781,7 +799,7 @@ class GameView(arcade.View):
 
         difficulty = self.level_ratio
         wave = 1.0 + (0.25 * math.sin(self.distance_traveled / 350.0))
-        current_scroll = clamp(SCROLL_SPEED + ((difficulty ** 1.35) * 4.8) + (wave * 0.35), 3.2, 8.8)
+        current_scroll = clamp(SCROLL_SPEED + ((difficulty ** 1.35) * 5.8) + (wave * 0.35), 3.2, 9.6)
 
         self.distance_traveled += current_scroll
         self.next_spawn_y -= current_scroll
