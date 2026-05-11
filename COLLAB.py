@@ -44,6 +44,26 @@ ROW_HEIGHT = 80
 
 PLAYER_HITBOX_WIDTH = 44
 PLAYER_HITBOX_HEIGHT = 62
+WHALE_FORWARD_ANGLE = 180
+
+LESSONS = {
+    "net": {
+        "title": "Fishing Net",
+        "body": "Lost or active fishing gear can trap whales as they migrate. Entanglement can make it hard to swim, feed, or surface for air.",
+    },
+    "boat": {
+        "title": "Shipping Boat",
+        "body": "Grey whales travel through busy coastal waters. Large ships can injure whales, especially when migration routes cross shipping lanes.",
+    },
+    "trash": {
+        "title": "Ocean Trash",
+        "body": "Plastic and other trash can be swallowed or can injure marine animals. Keeping waste out of rivers and beaches helps protect the migration route.",
+    },
+    "food_trash": {
+        "title": "Hidden Trash",
+        "body": "Not everything floating in the ocean is food. Trash can look like prey, but eating it can hurt whales and the food web they depend on.",
+    },
+}
 
 
 def clamp(value, minimum, maximum):
@@ -61,6 +81,21 @@ def circle_rectangle_overlap(circle_x, circle_y, radius, rect_x, rect_y, rect_wi
     closest_x = clamp(circle_x, rect_x - rect_width / 2, rect_x + rect_width / 2)
     closest_y = clamp(circle_y, rect_y - rect_height / 2, rect_y + rect_height / 2)
     return (circle_x - closest_x) ** 2 + (circle_y - closest_y) ** 2 <= radius ** 2
+
+
+def draw_panel(center_x, center_y, width, height, title, lines, footer):
+    left = center_x - width / 2
+    bottom = center_y - height / 2
+    arcade.draw_lbwh_rectangle_filled(left, bottom, width, height, (5, 28, 45, 232))
+    arcade.draw_lbwh_rectangle_outline(left, bottom, width, height, (170, 230, 240, 255), 2)
+    arcade.draw_text(title, center_x, bottom + height - 52, arcade.color.WHITE, 28, anchor_x="center", bold=True)
+
+    text_y = bottom + height - 105
+    for line in lines:
+        arcade.draw_text(line, left + 34, text_y, (225, 245, 245, 255), 15, width=width - 68, multiline=True)
+        text_y -= 58
+
+    arcade.draw_text(footer, center_x, bottom + 28, arcade.color.GOLD, 16, anchor_x="center", bold=True)
 
 
 def draw_heart(center_x, center_y, size, color):
@@ -151,6 +186,9 @@ class GameView(arcade.View):
         self.won = False
         self.last_hit_time = 0
         self.messages = []
+        self.game_state = "intro"
+        self.current_lesson = None
+        self.seen_lessons = set()
 
         self.distance_traveled = 0.0
         self.next_spawn_y = 0.0
@@ -166,7 +204,7 @@ class GameView(arcade.View):
         self.player_sprite = arcade.Sprite(WHALE_IMAGE, scale=WHALE_SCALE)
         self.player_sprite.center_x = SCREEN_WIDTH / 2
         self.player_sprite.center_y = PLAYER_START_Y
-        self.player_sprite.angle = 90
+        self.player_sprite.angle = WHALE_FORWARD_ANGLE
         self.player_list.append(self.player_sprite)
 
         self.left_pressed = False
@@ -177,6 +215,9 @@ class GameView(arcade.View):
         self.won = False
         self.last_hit_time = 0
         self.messages = []
+        self.game_state = "intro"
+        self.current_lesson = None
+        self.seen_lessons = set()
         self.distance_traveled = 0.0
         self.next_spawn_y = 0.0
         self.prev_hazard_cols = []
