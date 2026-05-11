@@ -1,11 +1,10 @@
-# Combined Grey Whale Migration Game
 
 ```python
 import math
 import random
 import time
 from pathlib import Path
-
+i
 import arcade
 
 
