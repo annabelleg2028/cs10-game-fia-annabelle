@@ -44,7 +44,7 @@ class GameView(arcade.View):
         self.obstacle_list = []
 
         self.player_sprite = arcade.Sprite(
-            "/Users/annabellegrant/cs10-game-fia-annabelle/player2.png",
+            "player2.png",
             scale=SPRITE_SCALING_PLAYER,
         )
         self.player_sprite.center_x = SCREEN_WIDTH / 2
@@ -66,9 +66,9 @@ class GameView(arcade.View):
 
             # Draw obstacles as red rectangles
             for obstacle in self.obstacle_list:
-                arcade.draw_rectangle_filled(
-                    obstacle["x"],
-                    obstacle["y"],
+                arcade.draw_lbwh_rectangle_filled(
+                    obstacle["x"] - (OBSTACLE_WIDTH / 2),
+                    obstacle["y"] - (OBSTACLE_HEIGHT / 2),
                     OBSTACLE_WIDTH,
                     OBSTACLE_HEIGHT,
                     arcade.color.RED
@@ -131,10 +131,10 @@ class GameView(arcade.View):
                 self.player_sprite.center_x += MOVEMENT_SPEED
 
             # Keep player in bounds
-            if self.player_sprite.center_x < 0:
-                self.player_sprite.center_x = 0
-            if self.player_sprite.center_x > SCREEN_WIDTH:
-                self.player_sprite.center_x = SCREEN_WIDTH
+            if self.player_sprite.left < 0:
+                self.player_sprite.left = 0
+            if self.player_sprite.right > SCREEN_WIDTH:
+                self.player_sprite.right = SCREEN_WIDTH
 
             # Keep player Y centered on screen
             self.player_sprite.center_y = SCREEN_HEIGHT / 2
