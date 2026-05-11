@@ -14,6 +14,7 @@ SCREEN_TITLE = "Grey Whale Migration"
 ASSET_DIR = Path(__file__).parent
 OCEAN_IMAGE = ASSET_DIR / "ocean.png"
 WHALE_IMAGE = ASSET_DIR / "whale.png"
+HEART_IMAGE = ASSET_DIR / "heart.png"
 FISH_IMAGES = [
     ASSET_DIR / "fish1.png",
     ASSET_DIR / "fish2.png",
@@ -37,7 +38,7 @@ PLAYER_START_Y = 120
 
 TOTAL_LEVELS = 14
 HEALTH_MAX = 5
-DISTANCE_PER_LEVEL = 1500
+DISTANCE_PER_LEVEL = 3800
 DISTANCE_TO_ALASKA = DISTANCE_PER_LEVEL * TOTAL_LEVELS
 
 LANE_WIDTH = SCREEN_WIDTH / GRID_COLUMNS
@@ -46,6 +47,7 @@ ROW_HEIGHT = 80
 PLAYER_HITBOX_WIDTH = 44
 PLAYER_HITBOX_HEIGHT = 62
 WHALE_FORWARD_ANGLE = 0
+GAME_FONT = ("Italianno", "Italiana", "Georgia", "Times New Roman", "Arial")
 
 LEVEL_GRADIENTS = [
     ((42, 140, 170), (16, 74, 130)),
@@ -115,6 +117,11 @@ def wrap_panel_lines(lines, panel_width, font_size, side_padding=68):
     return wrapped
 
 
+def draw_game_text(*args, **kwargs):
+    kwargs.setdefault("font_name", GAME_FONT)
+    arcade.draw_text(*args, **kwargs)
+
+
 def draw_panel(center_x, center_y, width, height, title, lines, footer):
     left = center_x - width / 2
     bottom = center_y - height / 2
@@ -125,7 +132,7 @@ def draw_panel(center_x, center_y, width, height, title, lines, footer):
     title_lines = wrap_panel_lines([title], width, title_font_size, side_padding=86)[:2]
     title_y = bottom + height - 38
     for line in title_lines:
-        arcade.draw_text(line, center_x, title_y, arcade.color.WHITE, title_font_size, anchor_x="center", bold=True)
+        draw_game_text(line, center_x, title_y, arcade.color.WHITE, title_font_size, anchor_x="center", bold=True)
         title_y -= title_font_size + 5
 
     footer_font_size = 15
@@ -136,7 +143,7 @@ def draw_panel(center_x, center_y, width, height, title, lines, footer):
     footer_lines = footer_lines[:2]
     footer_y = bottom + 34 + ((len(footer_lines) - 1) * (footer_font_size - 5))
     for line in footer_lines:
-        arcade.draw_text(line, center_x, footer_y, arcade.color.GOLD, footer_font_size, anchor_x="center", bold=True)
+        draw_game_text(line, center_x, footer_y, arcade.color.GOLD, footer_font_size, anchor_x="center", bold=True)
         footer_y -= footer_font_size + 5
 
     text_y = min(title_y - 20, bottom + height - 92)
@@ -155,7 +162,7 @@ def draw_panel(center_x, center_y, width, height, title, lines, footer):
         if text_y < footer_top:
             break
         if line:
-            arcade.draw_text(line, left + 34, text_y, (225, 245, 245, 255), body_font_size)
+            draw_game_text(line, left + 34, text_y, (225, 245, 245, 255), body_font_size)
         text_y -= line_spacing
 
 
@@ -228,6 +235,7 @@ class GameView(arcade.View):
         self.background_color = arcade.csscolor.DARK_SLATE_BLUE
         self.ocean = arcade.load_texture(OCEAN_IMAGE)
         self.whale_texture = arcade.load_texture(WHALE_IMAGE)
+        self.heart_texture = arcade.load_texture(HEART_IMAGE)
         self.fish_textures = [arcade.load_texture(path) for path in FISH_IMAGES]
         self.player_sprite = None
 
@@ -372,7 +380,8 @@ class GameView(arcade.View):
         token = arcade.Sprite(texture_path, scale=FISH_SCALE * (1.15 if is_school else 1.0))
         token.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
         token.center_y = self.next_spawn_y + (ROW_HEIGHT / 2)
-        token.value = random.choice([-10, -5]) if random.random() < 0.2 else random.choice([5, 10, 15, 20])
+        hidden_trash_chance = clamp(0.15 + (self.level_ratio * 0.30), 0.15, 0.45)
+        token.value = random.choice([-10, -5]) if random.random() < hidden_trash_chance else random.choice([5, 10, 15, 20])
         token.kind = "fish"
         token.is_trash = token.value < 0
         self.token_list.append(token)
@@ -385,11 +394,12 @@ class GameView(arcade.View):
         difficulty = self.level_ratio
 
         can_spawn_boats = self.current_level >= 3
-        if can_spawn_boats and self.rows_since_last_patrol >= 0 and random.random() < (0.12 + difficulty * 0.24):
+        if can_spawn_boats and self.rows_since_last_patrol >= 0 and random.random() < (0.12 + difficulty * 0.38):
             h_col = random.choice(all_cols)
             occupied_cols.append(h_col)
             hazard = self.spawn_hazard(h_col, "boat")
-            hazard.change_x = (PATROL_SPEED + difficulty * 1.4) if random.random() > 0.5 else -(PATROL_SPEED + difficulty * 1.4)
+            patrol_speed = PATROL_SPEED + difficulty * 2.2
+            hazard.change_x = patrol_speed if random.random() > 0.5 else -patrol_speed
             self.prev_hazard_cols = [h_col]
             self.rows_since_last_patrol = 0
         else:
@@ -405,9 +415,13 @@ class GameView(arcade.View):
                 safe_choices = all_cols
 
             hazard_total = 1
-            if self.current_level >= 3 and random.random() < (0.30 + difficulty * 0.35):
+            if self.current_level >= 3 and random.random() < (0.28 + difficulty * 0.42):
                 hazard_total += 1
-            if self.current_level >= 7 and random.random() < (0.20 + difficulty * 0.30):
+            if self.current_level >= 5 and random.random() < (0.18 + difficulty * 0.38):
+                hazard_total += 1
+            if self.current_level >= 9 and random.random() < (0.12 + difficulty * 0.34):
+                hazard_total += 1
+            if self.current_level >= 12 and random.random() < (0.10 + difficulty * 0.24):
                 hazard_total += 1
 
             for _ in range(min(hazard_total, len(safe_choices))):
@@ -419,14 +433,15 @@ class GameView(arcade.View):
             self.prev_hazard_cols = occupied_cols
 
             remaining_cols = [c for c in all_cols if c not in occupied_cols]
-            fish_chance = clamp(0.54 - difficulty * 0.20 + (0.18 if self.health <= 2 else 0.0), 0.20, 0.72)
+            fish_chance = clamp(0.56 - difficulty * 0.34 + (0.16 if self.health <= 2 else 0.0), 0.14, 0.72)
             if self.current_level >= 2 and remaining_cols and random.random() < fish_chance:
                 token_col = random.choice(remaining_cols)
                 occupied_cols.append(token_col)
                 remaining_cols.remove(token_col)
                 self.spawn_token(token_col)
 
-            if self.current_level >= 2 and remaining_cols and random.random() < 0.32 and distance_ratio > 0.15:
+            school_chance = clamp(0.32 - difficulty * 0.18, 0.10, 0.32)
+            if self.current_level >= 2 and remaining_cols and random.random() < school_chance and distance_ratio > 0.15:
                 lane = random.choice(remaining_cols)
                 neighbor_lanes = [lane]
                 if lane > 0:
