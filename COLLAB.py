@@ -466,30 +466,24 @@ class GameView(arcade.View):
 
     def draw_ocean_background(self):
         level_index = self.current_level - 1
-        local_progress = (self.distance_traveled % DISTANCE_PER_LEVEL) / DISTANCE_PER_LEVEL
-        top_start, bottom_start = LEVEL_GRADIENTS[level_index]
-        top_end, bottom_end = LEVEL_GRADIENTS[min(level_index + 1, TOTAL_LEVELS - 1)]
-        top_color = tuple(
-            int(top_start[i] + ((top_end[i] - top_start[i]) * local_progress))
-            for i in range(3)
-        )
-        bottom_color = tuple(
-            int(bottom_start[i] + ((bottom_end[i] - bottom_start[i]) * local_progress))
-            for i in range(3)
-        )
+        distance_into_level = self.distance_traveled % DISTANCE_PER_LEVEL
+        transition_amount = 1.0
+        transition_y = None
+        if level_index > 0 and distance_into_level < LEVEL_TRANSITION_DISTANCE:
+            transition_amount = distance_into_level / LEVEL_TRANSITION_DISTANCE
+            transition_y = SCREEN_HEIGHT * (1.0 - transition_amount)
+
         bands = 24
         band_height = SCREEN_HEIGHT / bands
         for band in range(bands):
             ratio = band / max(1, bands - 1)
-            red = int(bottom_color[0] + ((top_color[0] - bottom_color[0]) * ratio))
-            green = int(bottom_color[1] + ((top_color[1] - bottom_color[1]) * ratio))
-            blue = int(bottom_color[2] + ((top_color[2] - bottom_color[2]) * ratio))
+            color = self.level_background_color(level_index, ratio, band * band_height, transition_y)
             arcade.draw_lbwh_rectangle_filled(
                 0,
                 band * band_height,
                 SCREEN_WIDTH,
                 band_height + 1,
-                (red, green, blue, 255),
+                (*color, 255),
             )
 
         y = self.background_offset - OCEAN_TILE_HEIGHT
@@ -502,16 +496,40 @@ class GameView(arcade.View):
 
         for band in range(bands):
             ratio = band / max(1, bands - 1)
-            red = int(bottom_color[0] + ((top_color[0] - bottom_color[0]) * ratio))
-            green = int(bottom_color[1] + ((top_color[1] - bottom_color[1]) * ratio))
-            blue = int(bottom_color[2] + ((top_color[2] - bottom_color[2]) * ratio))
+            color = self.level_background_color(level_index, ratio, band * band_height, transition_y)
             arcade.draw_lbwh_rectangle_filled(
                 0,
                 band * band_height,
                 SCREEN_WIDTH,
                 band_height + 1,
-                (red, green, blue, 118),
+                (*color, 118),
             )
+
+        if transition_y is not None:
+            line_alpha = int(220 * (1.0 - abs(0.5 - transition_amount) * 0.75))
+            arcade.draw_line(0, transition_y, SCREEN_WIDTH, transition_y, (230, 250, 255, line_alpha), 3)
+            arcade.draw_line(0, transition_y - 4, SCREEN_WIDTH, transition_y - 4, (80, 190, 220, 90), 1)
+            label_y = clamp(transition_y + 12, 34, SCREEN_HEIGHT - 66)
+            draw_game_text(
+                f"Level {self.current_level}",
+                18,
+                label_y,
+                (235, 252, 255, line_alpha),
+                13,
+                bold=True,
+            )
+
+    def level_background_color(self, level_index, vertical_ratio, band_y, transition_y):
+        top_color, bottom_color = LEVEL_GRADIENTS[level_index]
+        current_color = blend_color(bottom_color, top_color, vertical_ratio)
+        if transition_y is None:
+            return current_color
+
+        previous_top, previous_bottom = LEVEL_GRADIENTS[level_index - 1]
+        previous_color = blend_color(previous_bottom, previous_top, vertical_ratio)
+        band_center = band_y + (SCREEN_HEIGHT / 24 / 2)
+        mix = smoothstep((band_center - transition_y + (LEVEL_TRANSITION_BAND / 2)) / LEVEL_TRANSITION_BAND)
+        return blend_color(previous_color, current_color, mix)
 
     def draw_grid_lines(self):
         line_color = (210, 245, 250, 50)
@@ -807,7 +825,7 @@ class GameView(arcade.View):
 
         difficulty = self.level_ratio
         wave = 1.0 + (0.25 * math.sin(self.distance_traveled / 350.0))
-        current_scroll = clamp(SCROLL_SPEED + ((difficulty ** 1.35) * 5.8) + (wave * 0.35), 3.2, 9.6)
+        current_scroll = clamp(SCROLL_SPEED + ((difficulty ** 1.2) * 5.6) + (wave * 0.35), 3.6, 9.8)
 
         self.distance_traveled += current_scroll
         self.next_spawn_y -= current_scroll
