@@ -35,8 +35,8 @@ FISH_SCALE = 0.07
 PLAYER_START_Y = 120
 
 HEALTH_MAX = 5
-DISTANCE_TO_ALASKA = 6000
-DISTANCE_PER_LEVEL = 600
+DISTANCE_TO_ALASKA = 10000
+DISTANCE_PER_LEVEL = 1000
 TOTAL_LEVELS = 10
 
 LANE_WIDTH = SCREEN_WIDTH / GRID_COLUMNS
@@ -44,7 +44,7 @@ ROW_HEIGHT = 80
 
 PLAYER_HITBOX_WIDTH = 44
 PLAYER_HITBOX_HEIGHT = 62
-WHALE_FORWARD_ANGLE = 180
+WHALE_FORWARD_ANGLE = 0
 
 LESSONS = {
     "net": {
@@ -64,6 +64,8 @@ LESSONS = {
         "body": "Not everything floating in the ocean is food. Trash can look like prey, but eating it can hurt whales and the food web they depend on.",
     },
 }
+
+TUTORIAL_LESSONS = ["net", "boat", "trash", "food_trash"]
 
 
 def clamp(value, minimum, maximum):
@@ -188,6 +190,7 @@ class GameView(arcade.View):
         self.messages = []
         self.game_state = "intro"
         self.current_lesson = None
+        self.tutorial_index = 0
         self.seen_lessons = set()
 
         self.distance_traveled = 0.0
@@ -217,6 +220,7 @@ class GameView(arcade.View):
         self.messages = []
         self.game_state = "intro"
         self.current_lesson = None
+        self.tutorial_index = 0
         self.seen_lessons = set()
         self.distance_traveled = 0.0
         self.next_spawn_y = 0.0
@@ -230,6 +234,50 @@ class GameView(arcade.View):
     @property
     def row_height(self):
         return ROW_HEIGHT
+
+    @property
+    def current_level(self):
+        return min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
+
+    @property
+    def level_ratio(self):
+        return (self.current_level - 1) / (TOTAL_LEVELS - 1)
+
+    def start_tutorial(self):
+        self.tutorial_index = 0
+        self.current_lesson = LESSONS[TUTORIAL_LESSONS[self.tutorial_index]]
+        self.game_state = "tutorial"
+
+    def advance_tutorial(self):
+        self.seen_lessons.add(TUTORIAL_LESSONS[self.tutorial_index])
+        self.tutorial_index += 1
+        if self.tutorial_index >= len(TUTORIAL_LESSONS):
+            self.start_migration()
+        else:
+            self.current_lesson = LESSONS[TUTORIAL_LESSONS[self.tutorial_index]]
+
+    def start_migration(self):
+        self.hazard_list = arcade.SpriteList()
+        self.token_list = arcade.SpriteList()
+        self.health = HEALTH_MAX
+        self.score = 0
+        self.is_game_over = False
+        self.won = False
+        self.messages = []
+        self.current_lesson = None
+        self.distance_traveled = 0.0
+        self.next_spawn_y = 0.0
+        self.prev_hazard_cols = []
+        self.rows_since_last_patrol = 0
+        self.background_offset = 0.0
+        self.player_sprite.center_x = SCREEN_WIDTH / 2
+        self.player_sprite.center_y = PLAYER_START_Y
+        self.player_sprite.angle = WHALE_FORWARD_ANGLE
+
+        while self.next_spawn_y < SCREEN_HEIGHT + ROW_HEIGHT:
+            self.spawn_row()
+
+        self.game_state = "playing"
 
     def spawn_hazard(self, col, hazard_kind=None):
         hazard_kind_roll = random.random()
@@ -268,12 +316,13 @@ class GameView(arcade.View):
         all_cols = list(range(GRID_COLUMNS))
         occupied_cols = []
         distance_ratio = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
+        difficulty = self.level_ratio
 
-        if self.rows_since_last_patrol >= 0 and random.random() < (0.24 + distance_ratio * 0.18):
+        if self.rows_since_last_patrol >= 0 and random.random() < (0.18 + difficulty * 0.28):
             h_col = random.choice(all_cols)
             occupied_cols.append(h_col)
             hazard = self.spawn_hazard(h_col, "boat")
-            hazard.change_x = PATROL_SPEED if random.random() > 0.5 else -PATROL_SPEED
+            hazard.change_x = (PATROL_SPEED + difficulty * 1.4) if random.random() > 0.5 else -(PATROL_SPEED + difficulty * 1.4)
             self.prev_hazard_cols = [h_col]
             self.rows_since_last_patrol = 0
         else:
@@ -289,9 +338,9 @@ class GameView(arcade.View):
                 safe_choices = all_cols
 
             hazard_total = 1
-            if distance_ratio > 0.35 and random.random() < 0.6:
+            if self.current_level >= 3 and random.random() < (0.30 + difficulty * 0.35):
                 hazard_total += 1
-            if distance_ratio > 0.70 and random.random() < 0.4:
+            if self.current_level >= 7 and random.random() < (0.20 + difficulty * 0.30):
                 hazard_total += 1
 
             for _ in range(min(hazard_total, len(safe_choices))):
@@ -303,7 +352,7 @@ class GameView(arcade.View):
             self.prev_hazard_cols = occupied_cols
 
             remaining_cols = [c for c in all_cols if c not in occupied_cols]
-            fish_chance = clamp(0.48 - distance_ratio * 0.18 + (0.18 if self.health <= 2 else 0.0), 0.18, 0.72)
+            fish_chance = clamp(0.54 - difficulty * 0.20 + (0.18 if self.health <= 2 else 0.0), 0.20, 0.72)
             if remaining_cols and random.random() < fish_chance:
                 token_col = random.choice(remaining_cols)
                 occupied_cols.append(token_col)
@@ -476,20 +525,23 @@ class GameView(arcade.View):
     def draw_intro(self):
         lines = [
             "You are a grey whale migrating north from the warm Baja California breeding lagoons toward cold feeding waters near Alaska.",
-            "Move left and right with A/D or the arrow keys. Eat fish for hidden points, avoid trash, fishing nets, and shipping boats.",
-            "The path on the right shows the real coastal route grey whales follow along western North America.",
+            "Before the real migration starts, you will see a short tutorial about the main threats and food choices in the game.",
+            "After the tutorial, move with A/D or the arrow keys. Eat fish for hidden points and follow the coastal route on the right.",
         ]
-        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 610, 390, "Grey Whale Migration", lines, "Press SPACE to start")
+        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 610, 390, "Grey Whale Migration", lines, "Press SPACE for tutorial")
 
     def draw_lesson(self):
         if not self.current_lesson:
             return
+        title = self.current_lesson["title"]
+        if self.game_state == "tutorial":
+            title = f"Tutorial: {title}"
         draw_panel(
             SCREEN_WIDTH / 2,
             SCREEN_HEIGHT / 2,
             590,
             310,
-            self.current_lesson["title"],
+            title,
             [self.current_lesson["body"]],
             "Press SPACE to continue",
         )
@@ -498,16 +550,17 @@ class GameView(arcade.View):
         if self.won:
             title = "You Made It To Alaska"
             lines = [
-                "Grey whales make one of the longest migrations of any mammal, traveling between breeding lagoons in Mexico and feeding grounds in Arctic and sub-Arctic waters.",
-                "The safest route is one with enough food, less plastic pollution, fewer entangling nets, and careful ship traffic.",
+                "Success! Grey whales make one of the longest migrations of any mammal, traveling between breeding lagoons in Mexico and feeding grounds near Alaska.",
+                "People can help by using less single-use plastic, picking up beach and river trash, choosing sustainable seafood, and supporting whale-safe shipping speeds.",
+                "Reporting entangled or injured marine mammals to local rescue groups also helps experts respond safely.",
             ]
         else:
             title = "Migration Stopped"
             lines = [
                 "During migration, whales face many human-made threats. Pollution, fishing gear, and ships can turn a long natural journey into a dangerous one.",
-                "Protecting coastlines and reducing ocean trash helps whales, fish, and the whole marine ecosystem.",
+                "People can help by keeping trash out of waterways, recycling fishing line, supporting cleaner harbors, and giving whales space from boats.",
             ]
-        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 620, 350, title, lines, "Press R to restart")
+        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 650, 405, title, lines, "Press R to restart")
 
     def resolve_collisions(self):
         curr_time = time.time()
