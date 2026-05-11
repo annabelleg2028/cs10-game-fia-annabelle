@@ -40,8 +40,6 @@ class WhaleMigrationGame(arcade.View):
         self.whale_x = SCREEN_WIDTH / 2
         self.whale_y = 120
         self.whale_angle = 0
-        self.target_x = self.whale_x
-        self.target_y = self.whale_y
         self.health = HEALTH_MAX
         self.score = 0
         self.distance = 0
@@ -50,6 +48,10 @@ class WhaleMigrationGame(arcade.View):
         self.win = False
         self.spawn_timer = 0
         self.background_offset = 0
+        self.move_up = False
+        self.move_down = False
+        self.move_left = False
+        self.move_right = False
         self.obstacles = []
         self.collectibles = []
         self.mysteries = []
@@ -272,21 +274,21 @@ class WhaleMigrationGame(arcade.View):
             24,
             556,
             arcade.color.WHITE,
-            18,
+            16,
         )
         arcade.draw_text(
             f"Score: {self.score}",
-            170,
+            148,
             556,
             arcade.color.WHITE,
-            18,
+            16,
         )
         arcade.draw_text(
             f"Level: {self.level}/10",
             250,
             556,
             arcade.color.WHITE,
-            18,
+            16,
         )
 
         for i in range(HEALTH_MAX):
@@ -298,18 +300,12 @@ class WhaleMigrationGame(arcade.View):
         arcade.draw_lbwh_rectangle_filled(12, 14, 290 * progress, 18, (120, 220, 160, 220))
         arcade.draw_text(
             "Northbound migration",
-            310,
-            12,
-            arcade.color.WHITE,
             14,
-        )
-        arcade.draw_text(
-            f"{int(progress * 100)}% to Alaska",
-            620,
-            12,
+            36,
             arcade.color.WHITE,
-            14,
+            12,
         )
+        arcade.draw_text(f"{int(progress * 100)}% to Alaska", 306, 12, arcade.color.WHITE, 12)
 
     def draw_end_panel(self) -> None:
         arcade.draw_lbwh_rectangle_filled(
@@ -321,7 +317,11 @@ class WhaleMigrationGame(arcade.View):
         )
         title = "You reached Alaska!" if self.win else "The whale could not continue"
         subtitle = "Press SPACE to swim again"
-        detail = "You balanced food, danger, and travel north." if self.win else "Try avoiding boats and nets while gathering fish."
+        detail = (
+            "You balanced food, danger, and travel north."
+            if self.win
+            else "Try avoiding boats and nets while gathering fish."
+        )
         arcade.draw_text(title, SCREEN_WIDTH / 2, 360, arcade.color.WHITE, 30, anchor_x="center")
         arcade.draw_text(
             f"Final score: {self.score}",
@@ -370,15 +370,27 @@ class WhaleMigrationGame(arcade.View):
             self.win = True
 
     def move_whale(self) -> None:
-        dx = self.target_x - self.whale_x
-        dy = self.target_y - self.whale_y
-        distance = math.hypot(dx, dy)
+        move_speed = 4.6 + self.level * 0.08
+        dx = 0
+        dy = 0
 
-        if distance > 1:
-            travel = min(5.5 + self.level * 0.12, distance)
-            self.whale_x += dx / distance * travel
-            self.whale_y += dy / distance * travel
-            self.whale_angle = math.degrees(math.atan2(dy, dx))
+        if self.move_left:
+            dx -= move_speed
+        if self.move_right:
+            dx += move_speed
+        if self.move_down:
+            dy -= move_speed
+        if self.move_up:
+            dy += move_speed
+
+        if dx or dy:
+            if dx and dy:
+                dx *= 0.7071
+                dy *= 0.7071
+            self.whale_x += dx
+            self.whale_y += dy
+            if dx or dy:
+                self.whale_angle = math.degrees(math.atan2(dy, dx))
 
         whale_width = self.whale.width * WHALE_SCALE
         whale_height = self.whale.height * WHALE_SCALE
@@ -462,25 +474,27 @@ class WhaleMigrationGame(arcade.View):
             return obstacle["radius"]
         return max(obstacle["width"], obstacle["height"]) * 0.35
 
-    def on_mouse_motion(self, x: int, y: int, dx: int, dy: int) -> None:
-        self.target_x = x
-        self.target_y = y
-
-    def on_mouse_drag(
-        self,
-        x: int,
-        y: int,
-        dx: int,
-        dy: int,
-        buttons: int,
-        modifiers: int,
-    ) -> None:
-        self.target_x = x
-        self.target_y = y
-
     def on_key_press(self, symbol: int, modifiers: int) -> None:
+        if symbol in (arcade.key.UP, arcade.key.W):
+            self.move_up = True
+        elif symbol in (arcade.key.DOWN, arcade.key.S):
+            self.move_down = True
+        elif symbol in (arcade.key.LEFT, arcade.key.A):
+            self.move_left = True
+        elif symbol in (arcade.key.RIGHT, arcade.key.D):
+            self.move_right = True
         if symbol == arcade.key.SPACE and (self.game_over or self.win):
             self.reset_game()
+
+    def on_key_release(self, symbol: int, modifiers: int) -> None:
+        if symbol in (arcade.key.UP, arcade.key.W):
+            self.move_up = False
+        elif symbol in (arcade.key.DOWN, arcade.key.S):
+            self.move_down = False
+        elif symbol in (arcade.key.LEFT, arcade.key.A):
+            self.move_left = False
+        elif symbol in (arcade.key.RIGHT, arcade.key.D):
+            self.move_right = False
 
 
 def main() -> None:
