@@ -23,11 +23,14 @@ class FishSwimGame(arcade.View):
     def __init__(self) -> None:
         super().__init__()
         self.ocean = arcade.load_texture(OCEAN_IMAGE)
-        self.fish = arcade.Sprite(FISH_IMAGE, scale=FISH_SCALE)
-        self.fish_list = arcade.SpriteList()
-        self.fish_list.append(self.fish)
-        self.target_x = SCREEN_WIDTH / 2
-        self.target_y = SCREEN_HEIGHT / 2
+        self.fish = arcade.load_texture(FISH_IMAGE)
+        self.fish_width = self.fish.width * FISH_SCALE
+        self.fish_height = self.fish.height * FISH_SCALE
+        self.fish_x = SCREEN_WIDTH / 2
+        self.fish_y = SCREEN_HEIGHT / 2
+        self.fish_angle = 0
+        self.target_x = self.fish_x
+        self.target_y = self.fish_y
         self.score = 0
         self.time_left = GAME_SECONDS
         self.game_over = False
@@ -35,10 +38,11 @@ class FishSwimGame(arcade.View):
         self.reset_game()
 
     def reset_game(self) -> None:
-        self.fish.center_x = SCREEN_WIDTH / 2
-        self.fish.center_y = SCREEN_HEIGHT / 2
-        self.target_x = self.fish.center_x
-        self.target_y = self.fish.center_y
+        self.fish_x = SCREEN_WIDTH / 2
+        self.fish_y = SCREEN_HEIGHT / 2
+        self.fish_angle = 0
+        self.target_x = self.fish_x
+        self.target_y = self.fish_y
         self.score = 0
         self.time_left = GAME_SECONDS
         self.game_over = False
@@ -75,7 +79,16 @@ class FishSwimGame(arcade.View):
                 2,
             )
 
-        self.fish_list.draw()
+        arcade.draw_texture_rect(
+            self.fish,
+            arcade.LBWH(
+                self.fish_x - self.fish_width / 2,
+                self.fish_y - self.fish_height / 2,
+                self.fish_width,
+                self.fish_height,
+            ),
+            angle=self.fish_angle,
+        )
         self.draw_scoreboard()
 
         if self.game_over:
@@ -149,14 +162,14 @@ class FishSwimGame(arcade.View):
         self.check_bubble_catches()
 
     def move_fish(self) -> None:
-        dx = self.target_x - self.fish.center_x
-        dy = self.target_y - self.fish.center_y
+        dx = self.target_x - self.fish_x
+        dy = self.target_y - self.fish_y
         distance = math.hypot(dx, dy)
 
         if distance > 1:
-            self.fish.center_x += dx / distance * min(FISH_SPEED, distance)
-            self.fish.center_y += dy / distance * min(FISH_SPEED, distance)
-            self.fish.angle = math.degrees(math.atan2(dy, dx))
+            self.fish_x += dx / distance * min(FISH_SPEED, distance)
+            self.fish_y += dy / distance * min(FISH_SPEED, distance)
+            self.fish_angle = math.degrees(math.atan2(dy, dx))
 
     def move_bubbles(self, delta_time: float) -> None:
         for bubble in self.bubbles:
@@ -167,11 +180,11 @@ class FishSwimGame(arcade.View):
                 bubble["y"] = -bubble["radius"]
 
     def check_bubble_catches(self) -> None:
-        fish_radius = max(self.fish.width, self.fish.height) / 3
+        fish_radius = max(self.fish_width, self.fish_height) / 3
 
         for bubble in self.bubbles:
-            dx = bubble["x"] - self.fish.center_x
-            dy = bubble["y"] - self.fish.center_y
+            dx = bubble["x"] - self.fish_x
+            dy = bubble["y"] - self.fish_y
             if math.hypot(dx, dy) < fish_radius + bubble["radius"]:
                 self.score += 1
                 bubble.update(self.make_bubble())
