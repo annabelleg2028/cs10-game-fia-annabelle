@@ -463,6 +463,51 @@ class GameView(arcade.View):
             24,
         )
 
+    def start_lesson(self, lesson_key):
+        if lesson_key in self.seen_lessons:
+            return
+        self.seen_lessons.add(lesson_key)
+        self.current_lesson = LESSONS[lesson_key]
+        self.game_state = "lesson"
+        self.left_pressed = False
+        self.right_pressed = False
+
+    def draw_intro(self):
+        lines = [
+            "You are a grey whale migrating north from the warm Baja California breeding lagoons toward cold feeding waters near Alaska.",
+            "Move left and right with A/D or the arrow keys. Eat fish for hidden points, avoid trash, fishing nets, and shipping boats.",
+            "The path on the right shows the real coastal route grey whales follow along western North America.",
+        ]
+        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 610, 390, "Grey Whale Migration", lines, "Press SPACE to start")
+
+    def draw_lesson(self):
+        if not self.current_lesson:
+            return
+        draw_panel(
+            SCREEN_WIDTH / 2,
+            SCREEN_HEIGHT / 2,
+            590,
+            310,
+            self.current_lesson["title"],
+            [self.current_lesson["body"]],
+            "Press SPACE to continue",
+        )
+
+    def draw_end_explanation(self):
+        if self.won:
+            title = "You Made It To Alaska"
+            lines = [
+                "Grey whales make one of the longest migrations of any mammal, traveling between breeding lagoons in Mexico and feeding grounds in Arctic and sub-Arctic waters.",
+                "The safest route is one with enough food, less plastic pollution, fewer entangling nets, and careful ship traffic.",
+            ]
+        else:
+            title = "Migration Stopped"
+            lines = [
+                "During migration, whales face many human-made threats. Pollution, fishing gear, and ships can turn a long natural journey into a dangerous one.",
+                "Protecting coastlines and reducing ocean trash helps whales, fish, and the whole marine ecosystem.",
+            ]
+        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 620, 350, title, lines, "Press R to restart")
+
     def resolve_collisions(self):
         curr_time = time.time()
         invincible = (curr_time - self.last_hit_time) < 1.0
@@ -475,13 +520,18 @@ class GameView(arcade.View):
                 self.health -= damage
                 self.last_hit_time = curr_time
                 self.add_message(f"-{damage} HEART", self.player_sprite.center_x, self.player_sprite.top + 20, arcade.color.RED)
+                self.start_lesson(hits[0].kind)
 
         hits = arcade.check_for_collision_with_list(self.player_sprite, self.token_list)
         for fish in hits:
             self.score += fish.value
-            self.health = min(HEALTH_MAX, self.health + 1)
-            self.distance_traveled = min(DISTANCE_TO_ALASKA, self.distance_traveled + 10)
-            self.add_message("+FISH", fish.center_x, fish.center_y, arcade.color.GOLD)
+            if fish.value > 0:
+                self.health = min(HEALTH_MAX, self.health + 1)
+                self.distance_traveled = min(DISTANCE_TO_ALASKA, self.distance_traveled + 10)
+                self.add_message(f"+{fish.value}", fish.center_x, fish.center_y, arcade.color.GOLD)
+            else:
+                self.add_message(str(fish.value), fish.center_x, fish.center_y, arcade.color.RED)
+                self.start_lesson("food_trash")
             fish.remove_from_sprite_lists()
 
     def update_messages(self, delta_time):
@@ -501,14 +551,18 @@ class GameView(arcade.View):
         self.player_list.draw()
         self.draw_ui()
 
-        if self.is_game_over or self.won:
+        if self.game_state == "intro":
+            arcade.draw_lrtb_rectangle_filled(0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, (0, 0, 0, 175))
+            self.draw_intro()
+        elif self.game_state == "lesson":
+            arcade.draw_lrtb_rectangle_filled(0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, (0, 0, 0, 175))
+            self.draw_lesson()
+        elif self.is_game_over or self.won:
             arcade.draw_lrtb_rectangle_filled(0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, (0, 0, 0, 180))
-            title = "YOU MADE IT TO ALASKA" if self.won else "GAME OVER"
-            arcade.draw_text(title, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 10, arcade.color.WHITE, 44, anchor_x="center", bold=True)
-            arcade.draw_text("Press R to restart", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 35, arcade.color.LIGHT_GRAY, 18, anchor_x="center")
+            self.draw_end_explanation()
 
     def on_update(self, delta_time):
-        if self.is_game_over or self.won:
+        if self.game_state != "playing" or self.is_game_over or self.won:
             self.update_messages(delta_time)
             return
 
@@ -524,7 +578,7 @@ class GameView(arcade.View):
             self.player_sprite.center_x -= MOVEMENT_SPEED
         if self.right_pressed:
             self.player_sprite.center_x += MOVEMENT_SPEED
-        self.player_sprite.angle = 90
+        self.player_sprite.angle = WHALE_FORWARD_ANGLE
 
         if self.player_sprite.left < 0:
             self.player_sprite.left = 0
@@ -562,7 +616,16 @@ class GameView(arcade.View):
         self.messages.append({"text": text, "x": x, "y": y, "timer": 1.0, "color": color})
 
     def on_key_press(self, key, modifiers):
-        if key in (arcade.key.LEFT, arcade.key.A):
+        if key in (arcade.key.SPACE, arcade.key.ENTER):
+            if self.game_state == "intro":
+                self.game_state = "playing"
+            elif self.game_state == "lesson":
+                self.current_lesson = None
+                self.last_hit_time = time.time()
+                self.game_state = "playing"
+        elif self.game_state != "playing":
+            return
+        elif key in (arcade.key.LEFT, arcade.key.A):
             self.left_pressed = True
         elif key in (arcade.key.RIGHT, arcade.key.D):
             self.right_pressed = True
