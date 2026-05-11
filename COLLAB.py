@@ -1,6 +1,3 @@
-# Combined Grey Whale Migration Game
-
-```python
 import math
 import random
 import time
@@ -458,4 +455,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
