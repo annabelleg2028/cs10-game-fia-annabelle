@@ -585,32 +585,33 @@ class GameView(arcade.View):
 
     def draw_hud_hearts(self):
         panel_left = SCREEN_WIDTH - 360
+        panel_width = 336
         heart_gap = 28
         heart_size = 24
         hearts_width = (HEALTH_MAX - 1) * heart_gap
-        start_x = panel_left + 230 - (hearts_width / 2)
-        draw_game_text("Health", start_x - 14, SCREEN_HEIGHT - 31, arcade.color.WHITE, 12, anchor_x="right")
+        start_x = panel_left + (panel_width / 2) - (hearts_width / 2)
+        draw_game_text("Health", panel_left + 14, 546, arcade.color.WHITE, 12)
         for i in range(HEALTH_MAX):
             alpha = 255 if i < self.health else 70
             arcade.draw_texture_rect(
                 self.heart_texture,
-                arcade.LBWH(start_x + (i * heart_gap) - heart_size / 2, SCREEN_HEIGHT - 37, heart_size, heart_size),
+                arcade.LBWH(start_x + (i * heart_gap) - heart_size / 2, 542, heart_size, heart_size),
                 alpha=alpha,
             )
 
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
-        arcade.draw_lbwh_rectangle_filled(12, 540, 330, 48, (0, 40, 70, 170))
+        arcade.draw_lbwh_rectangle_filled(12, 540, 392, 48, (0, 40, 70, 170))
         arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 540, 336, 48, (0, 40, 70, 170))
-        draw_game_text(f"Level: {level}/{TOTAL_LEVELS}", 24, 556, arcade.color.WHITE, 16, bold=True)
+        draw_game_text(f"Level: {level}/{TOTAL_LEVELS}", 24, 563, arcade.color.WHITE, 15, bold=True)
         draw_game_text(
             f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
-            145,
-            556,
+            24,
+            546,
             arcade.color.WHITE,
-            13,
+            12,
         )
-        draw_game_text(f"Points: {self.score}", SCREEN_WIDTH - 348, 556, arcade.color.WHITE, 16, bold=True)
+        draw_game_text(f"Points: {self.score}", SCREEN_WIDTH - 348, 563, arcade.color.WHITE, 15, bold=True)
         self.draw_hud_hearts()
         self.draw_distance_scale()
 
