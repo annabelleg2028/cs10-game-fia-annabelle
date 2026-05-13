@@ -441,7 +441,7 @@ class GameView(arcade.View):
             self.prev_hazard_cols = occupied_cols
 
             remaining_cols = [c for c in all_cols if c not in occupied_cols]
-            fish_chance = clamp(0.56 - difficulty * 0.34 + (0.16 if self.health <= 2 else 0.0), 0.14, 0.72)
+            fish_chance = clamp(0.56 - difficulty * 0.34, 0.14, 0.72)
             if self.current_level >= 2 and remaining_cols and random.random() < fish_chance:
                 token_col = random.choice(remaining_cols)
                 occupied_cols.append(token_col)
@@ -766,7 +766,6 @@ class GameView(arcade.View):
 
             self.score += fish.value
             if fish.value > 0:
-                self.health = min(HEALTH_MAX, self.health + 1)
                 self.distance_traveled = min(DISTANCE_TO_ALASKA, self.distance_traveled + 10)
                 self.add_message(f"+{fish.value}", fish.center_x, fish.center_y, arcade.color.GOLD)
             else:
@@ -789,6 +788,7 @@ class GameView(arcade.View):
     def update_level_banner(self):
         if self.current_level > self.last_level:
             self.last_level = self.current_level
+            self.health = HEALTH_MAX
             if self.current_level == 2:
                 self.level_banner_text = "Level 2: Fish enter the route"
             elif self.current_level == 3:
