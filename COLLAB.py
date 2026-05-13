@@ -727,7 +727,7 @@ class GameView(arcade.View):
                 "Reporting entangled or injured marine mammals to local rescue groups also helps experts respond safely.",
             ]
         else:
-            title = "Migration Stopped"
+            title = "The Whale Died"
             lines = [
                 "During migration, whales face many human-made threats. Pollution, fishing gear, and ships can turn a long natural journey into a dangerous one.",
                 "People can help by keeping trash out of waterways, recycling fishing line, supporting cleaner harbors, and giving whales space from boats.",
