@@ -469,11 +469,7 @@ class GameView(arcade.View):
             self.prev_hazard_cols = occupied_cols
 
             remaining_cols = [c for c in all_cols if c not in occupied_cols]
-<<<<<<< HEAD
-            fish_chance = clamp(0.56 - difficulty * 0.34, 0.14, 0.72)
-=======
             fish_chance = clamp(0.68 - difficulty * 0.18 + (0.18 if self.health <= 2 else 0.0), 0.22, 0.82)
->>>>>>> a5a168cee7701e2b70d7940329cd724853c3510b
             if self.current_level >= 2 and remaining_cols and random.random() < fish_chance:
                 token_col = random.choice(remaining_cols)
                 occupied_cols.append(token_col)
