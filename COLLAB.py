@@ -40,8 +40,8 @@ BOAT_SCALE = 0.125
 PLAYER_START_Y = 120
 
 TOTAL_LEVELS = 10
-ENERGY_MAX = 100
-ENERGY_DRAIN_PER_SECOND = 6.0
+ENERGY_MAX = 60
+ENERGY_DRAIN_PER_SECOND = 4.0
 TRASH_DAMAGE = 10
 NET_DAMAGE = 12
 BOAT_DAMAGE = 18
@@ -398,24 +398,27 @@ class GameView(arcade.View):
         token.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
         token.center_y = self.next_spawn_y + (ROW_HEIGHT / 2)
         hidden_trash_chance = 0.0 if self.current_level <= 2 else clamp(0.08 + (self.level_ratio * 0.12), 0.08, 0.20)
-        token.value = random.choice([-12, -8]) if random.random() < hidden_trash_chance else random.choice([8, 12, 16, 24])
+        token.value = random.choice([-10, -5]) if random.random() < hidden_trash_chance else random.choice([5, 10, 20])
         token.kind = "fish"
         token.is_trash = token.value < 0
         self.token_list.append(token)
         return token
 
     def fish_spawn_chance(self):
-        distance_ratio = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
-        base_chance = clamp(0.48 - (distance_ratio * 0.18), 0.18, 0.72)
+        level_index = self.current_level - 1
+        base_chance = clamp(0.66 - (level_index * 0.05), 0.22, 0.66)
+        if self.current_level == 1:
+            base_chance += 0.05
         if self.energy <= 30:
-            base_chance += 0.18
-        return clamp(base_chance, 0.18, 0.72)
+            base_chance += 0.10
+        return clamp(base_chance, 0.22, 0.74)
 
     def fish_school_chance(self):
-        base_chance = 0.32
+        level_index = self.current_level - 1
+        base_chance = clamp(0.24 - (level_index * 0.01), 0.07, 0.24)
         if self.energy <= 30:
             base_chance += 0.02
-        return clamp(base_chance, 0.03, 0.12)
+        return clamp(base_chance, 0.07, 0.26)
 
     def spawn_row(self):
         all_cols = list(range(GRID_COLUMNS))
@@ -435,21 +438,24 @@ class GameView(arcade.View):
 
         hazard_total = 0
         hazard_kind_pool = []
+        boat_chance = 0.0
         if self.current_level == 2:
             hazard_total = 1 + (1 if random.random() < 0.30 else 0)
             hazard_kind_pool = ["trash", "net"]
         elif self.current_level == 3:
             hazard_total = 1 + (1 if random.random() < 0.22 else 0)
-            hazard_kind_pool = ["boat"]
+            hazard_kind_pool = ["trash", "net"]
+            boat_chance = 0.08
         elif self.current_level >= 4:
             hazard_total = 1
-            if self.current_level >= 5 and random.random() < (0.16 + difficulty * 0.14):
+            if self.current_level >= 5 and random.random() < (0.12 + difficulty * 0.08):
                 hazard_total += 1
-            if self.current_level >= 7 and random.random() < (0.08 + difficulty * 0.10):
+            if self.current_level >= 7 and random.random() < (0.06 + difficulty * 0.05):
                 hazard_total += 1
-            if self.current_level >= 9 and random.random() < (0.05 + difficulty * 0.08):
+            if self.current_level >= 9 and random.random() < (0.04 + difficulty * 0.03):
                 hazard_total += 1
-            hazard_kind_pool = ["trash", "net", "boat"]
+            hazard_kind_pool = ["trash", "net"]
+            boat_chance = 0.05 + (difficulty * 0.04)
 
         for _ in range(min(hazard_total, len(safe_choices))):
             h_col = random.choice(safe_choices)
@@ -462,10 +468,18 @@ class GameView(arcade.View):
                 patrol_speed = PATROL_SPEED + (difficulty * 1.2)
                 hazard.change_x = patrol_speed if random.random() > 0.5 else -patrol_speed
 
+        remaining_cols = [c for c in all_cols if c not in occupied_cols]
+        if self.current_level >= 3 and remaining_cols and random.random() < boat_chance:
+            boat_col = random.choice(remaining_cols)
+            occupied_cols.append(boat_col)
+            hazard_cols.append(boat_col)
+            hazard = self.spawn_hazard(boat_col, "boat")
+            patrol_speed = PATROL_SPEED + (difficulty * 1.2)
+            hazard.change_x = patrol_speed if random.random() > 0.5 else -patrol_speed
+
         self.prev_hazard_cols = hazard_cols
         self.rows_since_last_patrol = 0 if hazard_total else self.rows_since_last_patrol + 1
 
-        remaining_cols = [c for c in all_cols if c not in occupied_cols]
         fish_chance = self.fish_spawn_chance()
         if remaining_cols and random.random() < fish_chance:
             token_col = random.choice(remaining_cols)
@@ -604,18 +618,25 @@ class GameView(arcade.View):
         inner_width = panel_width - 36
         inner_height = 18
         energy_ratio = clamp(self.energy / ENERGY_MAX, 0.0, 1.0)
-        fill_width = max(0, inner_width * energy_ratio)
+        segment_count = 5
+        segment_gap = 6
+        segment_width = (inner_width - (segment_gap * (segment_count - 1))) / segment_count
+        segment_value = ENERGY_MAX / segment_count
 
         draw_game_text("⚡ Energy", inner_left, 540, TEXT_SOFT, 12, bold=True)
-        draw_rounded_rectangle(inner_left, inner_bottom, inner_width, inner_height, (23, 57, 92, 190), radius=9)
-        if fill_width > 0:
-            fill_color = (103, 222, 255, 255)
-            if energy_ratio <= 0.45:
+        for segment in range(segment_count):
+            segment_left = inner_left + (segment * (segment_width + segment_gap))
+            segment_fill = clamp((self.energy - (segment * segment_value)) / segment_value, 0.0, 1.0)
+            if energy_ratio > 0.6:
+                fill_color = (103, 222, 255, 255)
+            elif energy_ratio > 0.25:
                 fill_color = (255, 190, 92, 255)
-            if energy_ratio <= 0.2:
+            else:
                 fill_color = (255, 112, 112, 255)
-            draw_rounded_rectangle(inner_left, inner_bottom, fill_width, inner_height, fill_color, radius=9)
-        draw_outlined_rounded_rectangle(inner_left, inner_bottom, inner_width, inner_height, (0, 0, 0, 0), radius=9, outline_width=2)
+            draw_rounded_rectangle(segment_left, inner_bottom, segment_width, inner_height, (23, 57, 92, 190), radius=9)
+            if segment_fill > 0:
+                draw_rounded_rectangle(segment_left, inner_bottom, segment_width * segment_fill, inner_height, fill_color, radius=9)
+            draw_outlined_rounded_rectangle(segment_left, inner_bottom, segment_width, inner_height, (0, 0, 0, 0), radius=9, outline_width=2)
         draw_game_text(f"{int(self.energy)}%", panel_left + panel_width - 18, 540, TEXT_SOFT, 12, anchor_x="right", bold=True)
 
     def draw_ui(self):
@@ -817,7 +838,7 @@ class GameView(arcade.View):
             if self.current_level == 2:
                 self.level_banner_text = "Level 2: Trash and nets enter the route"
             elif self.current_level == 3:
-                self.level_banner_text = "Level 3: Moving ships enter the route"
+                self.level_banner_text = "Level 3: Moving ships appear less often"
             else:
                 self.level_banner_text = f"Level {self.current_level}"
             self.level_banner_timer = 2.4
