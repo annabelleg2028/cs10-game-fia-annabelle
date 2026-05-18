@@ -42,6 +42,9 @@ PLAYER_START_Y = 120
 
 TOTAL_LEVELS = 10
 HEALTH_MAX = 6
+ENERGY_MAX = 100
+ENERGY_DRAIN_PER_SECOND = 6.5
+MOVEMENT_ENERGY_DRAIN_PER_SECOND = 3.5
 DISTANCE_PER_LEVEL = 5200
 DISTANCE_TO_ALASKA = DISTANCE_PER_LEVEL * TOTAL_LEVELS
 LEVEL_TRANSITION_DISTANCE = 520
@@ -255,6 +258,7 @@ class GameView(arcade.View):
         self.right_pressed = False
 
         self.health = HEALTH_MAX
+        self.energy = ENERGY_MAX
         self.score = 0
         self.is_game_over = False
         self.won = False
@@ -288,6 +292,7 @@ class GameView(arcade.View):
         self.left_pressed = False
         self.right_pressed = False
         self.health = HEALTH_MAX
+        self.energy = ENERGY_MAX
         self.score = 0
         self.is_game_over = False
         self.won = False
@@ -338,6 +343,7 @@ class GameView(arcade.View):
         self.hazard_list = arcade.SpriteList()
         self.token_list = arcade.SpriteList()
         self.health = HEALTH_MAX
+        self.energy = ENERGY_MAX
         self.score = 0
         self.is_game_over = False
         self.won = False
