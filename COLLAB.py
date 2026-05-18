@@ -472,14 +472,14 @@ class GameView(arcade.View):
 
             remaining_cols = [c for c in all_cols if c not in occupied_cols]
             fish_chance = self.fish_spawn_chance()
-            if self.current_level >= 2 and remaining_cols and random.random() < fish_chance:
+            if remaining_cols and random.random() < fish_chance:
                 token_col = random.choice(remaining_cols)
                 occupied_cols.append(token_col)
                 remaining_cols.remove(token_col)
                 self.spawn_token(token_col)
 
             school_chance = self.fish_school_chance()
-            if self.current_level >= 2 and remaining_cols and random.random() < school_chance and distance_ratio > 0.15:
+            if remaining_cols and random.random() < school_chance and distance_ratio > 0.15:
                 lane = random.choice(remaining_cols)
                 neighbor_lanes = [lane]
                 if lane > 0:
@@ -724,7 +724,7 @@ class GameView(arcade.View):
     def draw_intro(self):
         lines = [
             "You are a grey whale migrating north from the warm Baja California breeding lagoons toward cold feeding waters near Alaska.",
-            "Your objective is to reach Alaska. Level 1 has trash and fishing nets, Level 2 adds fish that may hide trash, and Level 3 adds shipping boats.",
+            "Your objective is to reach Alaska. Level 1 starts with the most fish, and later levels make food scarcer while adding more boats and nets.",
             "The first time you bump into each kind of object, the game pauses to teach you what it means. Hazard lessons are free: you learn without losing energy.",
             "Move with A/D or the arrow keys. Eat fish to recharge energy and follow the coastal route on the right.",
         ]
