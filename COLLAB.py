@@ -181,14 +181,13 @@ def draw_rounded_rectangle(left, bottom, width, height, color, radius=16):
 
 def draw_outlined_rounded_rectangle(left, bottom, width, height, color, radius=16, outline_color=TEXT_SOFT, outline_width=2):
     draw_rounded_rectangle(left, bottom, width, height, color, radius=radius)
-    arcade.draw_round_rect_outline(
+    arcade.draw_rectangle_outline(
         left + (width / 2),
         bottom + (height / 2),
         width,
         height,
         outline_color,
         outline_width,
-        radius=radius,
     )
 
 
