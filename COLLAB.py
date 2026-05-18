@@ -16,6 +16,7 @@ OCEAN_IMAGE = ASSET_DIR / "ocean.png"
 WHALE_IMAGE = ASSET_DIR / "whale.png"
 NET_IMAGE = ASSET_DIR / "fishingnet.png"
 BOAT_IMAGE = ASSET_DIR / "fishingboat.png"
+HEART_IMAGE = ASSET_DIR / "heart.png"
 FISH_IMAGES = [
     ASSET_DIR / "fish1.png",
     ASSET_DIR / "fish2.png",
@@ -130,21 +131,6 @@ def circle_rectangle_overlap(circle_x, circle_y, radius, rect_x, rect_y, rect_wi
     closest_x = clamp(circle_x, rect_x - rect_width / 2, rect_x + rect_width / 2)
     closest_y = clamp(circle_y, rect_y - rect_height / 2, rect_y + rect_height / 2)
     return (circle_x - closest_x) ** 2 + (circle_y - closest_y) ** 2 <= radius ** 2
-
-
-def draw_heart(center_x, center_y, size, color):
-    radius = size * 0.45
-    arcade.draw_circle_filled(center_x - radius * 0.65, center_y + radius * 0.2, radius, color)
-    arcade.draw_circle_filled(center_x + radius * 0.65, center_y + radius * 0.2, radius, color)
-    arcade.draw_triangle_filled(
-        center_x - radius * 1.15,
-        center_y + radius * 0.15,
-        center_x + radius * 1.15,
-        center_y + radius * 0.15,
-        center_x,
-        center_y - radius * 1.45,
-        color,
-    )
 
 
 def wrap_panel_lines(lines, panel_width, font_size, side_padding=68):
@@ -280,6 +266,7 @@ class GameView(arcade.View):
         self.whale_texture = arcade.load_texture(WHALE_IMAGE)
         self.net_texture = arcade.load_texture(NET_IMAGE)
         self.boat_texture = arcade.load_texture(BOAT_IMAGE)
+        self.heart_texture = arcade.load_texture(HEART_IMAGE)
         self.fish_textures = [arcade.load_texture(path) for path in FISH_IMAGES]
         self.player_sprite = None
 
@@ -667,18 +654,22 @@ class GameView(arcade.View):
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
         panel_left = 12
-        panel_bottom = 470
+        status_bottom = 556
+        status_width = 330
+        status_height = 34
+        panel_bottom = 460
         panel_width = 360
-        panel_height = 126
+        panel_height = 90
+        draw_outlined_rounded_rectangle(panel_left, status_bottom, status_width, status_height, PANEL_INK, radius=14)
         draw_outlined_rounded_rectangle(panel_left, panel_bottom, panel_width, panel_height, PANEL_INK, radius=18)
         draw_rounded_rectangle(SCREEN_WIDTH - 360, 504, 336, 84, PANEL_INK, radius=16)
-        draw_game_text(f"Level {level}/{TOTAL_LEVELS}", panel_left + 18, panel_bottom + 98, TEXT_SOFT, 16, bold=True)
+        draw_game_text(f"Level {level}/{TOTAL_LEVELS}", panel_left + 18, status_bottom + 13, TEXT_SOFT, 14, bold=True)
         draw_game_text(
             f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
-            panel_left + 18,
-            panel_bottom + 76,
+            panel_left + 132,
+            status_bottom + 13,
             TEXT_SOFT,
-            14,
+            12,
         )
         self.draw_hud_hearts(panel_left, panel_bottom + panel_height)
         self.draw_energy_bar(panel_left, panel_bottom, panel_width)
@@ -940,7 +931,7 @@ class GameView(arcade.View):
         self.resolve_collisions()
         self.update_level_banner()
 
-        if self.energy <= 0:
+        if self.health <= 0 or self.energy <= 0:
             self.is_game_over = True
         if self.distance_traveled >= DISTANCE_TO_ALASKA:
             self.won = True
