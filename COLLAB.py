@@ -15,6 +15,8 @@ ASSET_DIR = Path(__file__).parent
 OCEAN_IMAGE = ASSET_DIR / "ocean.png"
 WHALE_IMAGE = ASSET_DIR / "whale.png"
 HEART_IMAGE = ASSET_DIR / "heart.png"
+NET_IMAGE = ASSET_DIR / "fishingnet.png"
+BOAT_IMAGE = ASSET_DIR / "fishingboat.png"
 FISH_IMAGES = [
     ASSET_DIR / "fish1.png",
     ASSET_DIR / "fish2.png",
@@ -34,6 +36,8 @@ PATROL_SPEED = 2
 
 WHALE_SCALE = 0.13
 FISH_SCALE = 0.07
+NET_SCALE = 0.092
+BOAT_SCALE = 0.125
 PLAYER_START_Y = 120
 
 TOTAL_LEVELS = 10
@@ -49,7 +53,13 @@ ROW_HEIGHT = 80
 PLAYER_HITBOX_WIDTH = 44
 PLAYER_HITBOX_HEIGHT = 62
 WHALE_FORWARD_ANGLE = 0
-GAME_FONT = ("Italianno", "Italiana", "Georgia", "Times New Roman", "Arial")
+GAME_FONT = ("Avenir Next", "Gill Sans", "Georgia", "Arial")
+TITLE_FONT = ("Snell Roundhand", "Noteworthy", "Georgia", "Times New Roman")
+PANEL_INK = (7, 31, 45, 224)
+PANEL_EDGE = (201, 239, 235, 230)
+PANEL_GLOW = (245, 181, 120, 78)
+TEXT_SOFT = (235, 250, 246, 255)
+TEXT_ACCENT = (255, 204, 128, 255)
 
 LEVEL_GRADIENTS = [
     ((120, 220, 218), (46, 145, 190)),
@@ -130,18 +140,27 @@ def draw_game_text(*args, **kwargs):
     arcade.draw_text(*args, **kwargs)
 
 
+def draw_title_text(*args, **kwargs):
+    kwargs.setdefault("font_name", TITLE_FONT)
+    arcade.draw_text(*args, **kwargs)
+
+
 def draw_panel(center_x, center_y, width, height, title, lines, footer):
     left = center_x - width / 2
     bottom = center_y - height / 2
-    arcade.draw_lbwh_rectangle_filled(left, bottom, width, height, (5, 28, 45, 232))
-    arcade.draw_lbwh_rectangle_outline(left, bottom, width, height, (170, 230, 240, 255), 2)
+    arcade.draw_lbwh_rectangle_filled(left + 9, bottom - 9, width, height, (2, 13, 25, 105))
+    arcade.draw_lbwh_rectangle_filled(left, bottom, width, height, PANEL_INK)
+    arcade.draw_lbwh_rectangle_filled(left, bottom + height - 7, width, 7, PANEL_GLOW)
+    arcade.draw_lbwh_rectangle_filled(left + 20, bottom + height - 15, width - 40, 1, (255, 231, 188, 115))
+    arcade.draw_lbwh_rectangle_outline(left, bottom, width, height, PANEL_EDGE, 2)
+    arcade.draw_lbwh_rectangle_outline(left + 8, bottom + 8, width - 16, height - 16, (92, 184, 190, 86), 1)
 
-    title_font_size = 28 if len(title) <= 24 else 24
+    title_font_size = 34 if len(title) <= 24 else 28
     title_lines = wrap_panel_lines([title], width, title_font_size, side_padding=86)[:2]
-    title_y = bottom + height - 38
+    title_y = bottom + height - 45
     for line in title_lines:
-        draw_game_text(line, center_x, title_y, arcade.color.WHITE, title_font_size, anchor_x="center", bold=True)
-        title_y -= title_font_size + 5
+        draw_title_text(line, center_x, title_y, TEXT_SOFT, title_font_size, anchor_x="center")
+        title_y -= title_font_size + 2
 
     footer_font_size = 15
     footer_lines = wrap_panel_lines([footer], width, footer_font_size, side_padding=86)
@@ -151,7 +170,7 @@ def draw_panel(center_x, center_y, width, height, title, lines, footer):
     footer_lines = footer_lines[:2]
     footer_y = bottom + 34 + ((len(footer_lines) - 1) * (footer_font_size - 5))
     for line in footer_lines:
-        draw_game_text(line, center_x, footer_y, arcade.color.GOLD, footer_font_size, anchor_x="center", bold=True)
+        draw_game_text(line, center_x, footer_y, TEXT_ACCENT, footer_font_size, anchor_x="center", bold=True)
         footer_y -= footer_font_size + 5
 
     text_y = min(title_y - 20, bottom + height - 92)
@@ -170,7 +189,7 @@ def draw_panel(center_x, center_y, width, height, title, lines, footer):
         if text_y < footer_top:
             break
         if line:
-            draw_game_text(line, left + 34, text_y, (225, 245, 245, 255), body_font_size)
+            draw_game_text(line, left + 38, text_y, TEXT_SOFT, body_font_size)
         text_y -= line_spacing
 
 
@@ -200,43 +219,6 @@ def draw_trash(center_x, center_y, scale=1.0):
     )
 
 
-def draw_net(center_x, center_y, scale=1.0):
-    width = 72 * scale
-    height = 24 * scale
-    arcade.draw_lbwh_rectangle_filled(
-        center_x - width / 2,
-        center_y - height / 2,
-        width,
-        height,
-        (190, 210, 220, 210),
-    )
-    for i in range(4):
-        x = center_x - width / 2 + (i + 1) * width / 5
-        arcade.draw_line(x, center_y - height / 2, x, center_y + height / 2, (30, 80, 95, 130), 1)
-    for i in range(2):
-        y = center_y - height / 2 + (i + 1) * height / 3
-        arcade.draw_line(center_x - width / 2, y, center_x + width / 2, y, (30, 80, 95, 130), 1)
-
-
-def draw_boat(center_x, center_y, scale=1.0):
-    width = 82 * scale
-    height = 28 * scale
-    arcade.draw_lbwh_rectangle_filled(
-        center_x - width / 2,
-        center_y - height / 2,
-        width,
-        height,
-        (70, 78, 88, 255),
-    )
-    arcade.draw_lbwh_rectangle_filled(
-        center_x - width * 0.28,
-        center_y + height * 0.15,
-        width * 0.22,
-        height * 0.35,
-        (120, 90, 55, 255),
-    )
-
-
 class GameView(arcade.View):
     def __init__(self):
         super().__init__()
@@ -244,6 +226,8 @@ class GameView(arcade.View):
         self.ocean = arcade.load_texture(OCEAN_IMAGE)
         self.whale_texture = arcade.load_texture(WHALE_IMAGE)
         self.heart_texture = arcade.load_texture(HEART_IMAGE)
+        self.net_texture = arcade.load_texture(NET_IMAGE)
+        self.boat_texture = arcade.load_texture(BOAT_IMAGE)
         self.fish_textures = [arcade.load_texture(path) for path in FISH_IMAGES]
         self.player_sprite = None
 
@@ -362,7 +346,7 @@ class GameView(arcade.View):
 
     def spawn_hazard(self, col, hazard_kind=None):
         if hazard_kind == "boat":
-            hazard = arcade.SpriteSolidColor(82, 28, (70, 78, 88, 255))
+            hazard = arcade.Sprite(BOAT_IMAGE, scale=BOAT_SCALE)
             hazard.kind = "boat"
             hazard.damage = 2
         elif hazard_kind == "trash":
@@ -370,13 +354,12 @@ class GameView(arcade.View):
             hazard.kind = "trash"
             hazard.damage = 1
         elif hazard_kind == "net":
-            hazard = arcade.SpriteSolidColor(76, 26, (190, 210, 220, 210))
+            hazard = arcade.Sprite(NET_IMAGE, scale=NET_SCALE)
             hazard.kind = "net"
             hazard.damage = 1
         else:
             return self.spawn_hazard(col, self.choose_hazard_kind())
 
-        hazard.alpha = 0
         hazard.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
         hazard.center_y = self.next_spawn_y + (ROW_HEIGHT / 2)
         hazard.change_x = 0
@@ -547,8 +530,10 @@ class GameView(arcade.View):
         panel_bottom = 92
         panel_width = 132
         panel_height = 410
-        arcade.draw_lbwh_rectangle_filled(panel_left, panel_bottom, panel_width, panel_height, (0, 35, 55, 150))
-        draw_game_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 28, arcade.color.WHITE, 13, anchor_x="center", bold=True)
+        arcade.draw_lbwh_rectangle_filled(panel_left + 5, panel_bottom - 5, panel_width, panel_height, (2, 13, 25, 82))
+        arcade.draw_lbwh_rectangle_filled(panel_left, panel_bottom, panel_width, panel_height, (4, 39, 58, 154))
+        arcade.draw_lbwh_rectangle_outline(panel_left, panel_bottom, panel_width, panel_height, (204, 241, 232, 176), 1)
+        draw_title_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 28, TEXT_SOFT, 18, anchor_x="center")
 
         route = [
             (panel_left + 82, panel_bottom + 54),
@@ -558,7 +543,8 @@ class GameView(arcade.View):
             (panel_left + 76, panel_bottom + 356),
         ]
         for start, end in zip(route, route[1:]):
-            arcade.draw_line(start[0], start[1], end[0], end[1], (200, 235, 230, 255), 4)
+            arcade.draw_line(start[0], start[1], end[0], end[1], (246, 216, 164, 225), 4)
+            arcade.draw_line(start[0], start[1], end[0], end[1], (92, 201, 202, 180), 2)
 
         labels = [
             ("Baja", route[0]),
@@ -568,8 +554,8 @@ class GameView(arcade.View):
             ("Alaska", route[4]),
         ]
         for label, (x, y) in labels:
-            arcade.draw_circle_filled(x, y, 5, arcade.color.WHITE)
-            draw_game_text(label, panel_left + 8, y - 7, (220, 245, 245, 255), 10)
+            arcade.draw_circle_filled(x, y, 5, TEXT_SOFT)
+            draw_game_text(label, panel_left + 8, y - 7, TEXT_SOFT, 10)
 
         progress = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
         segment_progress = progress * (len(route) - 1)
@@ -579,9 +565,9 @@ class GameView(arcade.View):
         end = route[segment_index + 1]
         marker_x = start[0] + ((end[0] - start[0]) * local_progress)
         marker_y = start[1] + ((end[1] - start[1]) * local_progress)
-        arcade.draw_circle_filled(marker_x, marker_y, 8, (120, 220, 160, 255))
-        arcade.draw_circle_outline(marker_x, marker_y, 10, arcade.color.WHITE, 2)
-        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 14, arcade.color.GOLD, 12, anchor_x="center", bold=True)
+        arcade.draw_circle_filled(marker_x, marker_y, 8, (242, 137, 111, 255))
+        arcade.draw_circle_outline(marker_x, marker_y, 10, TEXT_SOFT, 2)
+        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 14, TEXT_ACCENT, 12, anchor_x="center", bold=True)
 
     def draw_hud_hearts(self):
         panel_left = SCREEN_WIDTH - 360
