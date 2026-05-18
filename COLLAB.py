@@ -175,6 +175,13 @@ def draw_rounded_rectangle(left, bottom, width, height, color, radius=16):
     arcade.draw_circle_filled(left + width - radius, bottom + height - radius, radius, color)
 
 
+def draw_rectangle_outline(left, bottom, width, height, color, border_width=2):
+    arcade.draw_lbwh_rectangle_filled(left, bottom, width, border_width, color)
+    arcade.draw_lbwh_rectangle_filled(left, bottom + height - border_width, width, border_width, color)
+    arcade.draw_lbwh_rectangle_filled(left, bottom, border_width, height, color)
+    arcade.draw_lbwh_rectangle_filled(left + width - border_width, bottom, border_width, height, color)
+
+
 def draw_panel(center_x, center_y, max_width, title, lines, footer):
     title_font_size = TITLE_FONT_SIZE if len(title) <= 24 else 22
     footer_font_size = FOOTER_FONT_SIZE
@@ -599,8 +606,9 @@ class GameView(arcade.View):
         bar_height = 12
         fill_width = bar_width * clamp(self.energy / ENERGY_MAX, 0.0, 1.0)
         arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, bar_width, bar_height, (10, 55, 92, 255))
-        arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, fill_width, bar_height, (165, 222, 255, 255))
-        arcade.draw_lbwh_rectangle_outline(bar_left, bar_bottom, bar_width, bar_height, TEXT_SOFT, 2)
+        if fill_width > 0:
+            arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, fill_width, bar_height, (165, 222, 255, 255))
+        draw_rectangle_outline(bar_left, bar_bottom, bar_width, bar_height, TEXT_SOFT, 2)
         draw_game_text("Energy", 24, bar_bottom - 1, TEXT_SOFT, 12)
 
     def draw_ui(self):
