@@ -30,9 +30,9 @@ OCEAN_TILE_WIDTH = SCREEN_WIDTH
 OCEAN_TILE_HEIGHT = OCEAN_TILE_WIDTH * (OCEAN_IMAGE_HEIGHT / OCEAN_IMAGE_WIDTH)
 
 GRID_COLUMNS = 8
-SCROLL_SPEED = 3.7
-MOVEMENT_SPEED = 8
-PATROL_SPEED = 2
+SCROLL_SPEED = 2.8
+MOVEMENT_SPEED = 9
+PATROL_SPEED = 1.5
 
 WHALE_SCALE = 0.13
 FISH_SCALE = 0.07
@@ -41,7 +41,7 @@ BOAT_SCALE = 0.125
 PLAYER_START_Y = 120
 
 TOTAL_LEVELS = 10
-HEALTH_MAX = 5
+HEALTH_MAX = 6
 DISTANCE_PER_LEVEL = 5200
 DISTANCE_TO_ALASKA = DISTANCE_PER_LEVEL * TOTAL_LEVELS
 LEVEL_TRANSITION_DISTANCE = 520
@@ -55,6 +55,11 @@ PLAYER_HITBOX_HEIGHT = 62
 WHALE_FORWARD_ANGLE = 0
 GAME_FONT = ("Italiana", "Baskerville", "Georgia", "Times New Roman")
 TITLE_FONT = ("Italiana", "Baskerville", "Georgia", "Times New Roman")
+BODY_FONT_SIZE = 15
+TITLE_FONT_SIZE = 28
+FOOTER_FONT_SIZE = 13
+PANEL_PADDING_X = 26
+PANEL_PADDING_Y = 22
 PANEL_INK = (6, 28, 48, 224)
 PANEL_EDGE = (214, 241, 255, 230)
 PANEL_GLOW = (126, 192, 236, 88)
@@ -135,6 +140,10 @@ def wrap_panel_lines(lines, panel_width, font_size, side_padding=68):
     return wrapped
 
 
+def estimate_text_width(text, font_size, padding=0):
+    return (len(text) * font_size * 0.52) + padding
+
+
 def draw_game_text(*args, **kwargs):
     kwargs.setdefault("font_name", GAME_FONT)
     arcade.draw_text(*args, **kwargs)
@@ -145,48 +154,51 @@ def draw_title_text(*args, **kwargs):
     arcade.draw_text(*args, **kwargs)
 
 
-def draw_panel(center_x, center_y, width, height, title, lines, footer):
-    left = center_x - width / 2
-    bottom = center_y - height / 2
-    arcade.draw_lbwh_rectangle_filled(left + 9, bottom - 9, width, height, (2, 13, 25, 105))
-    arcade.draw_lbwh_rectangle_filled(left, bottom, width, height, PANEL_INK)
-    arcade.draw_lbwh_rectangle_filled(left, bottom + height - 7, width, 7, PANEL_GLOW)
-    arcade.draw_lbwh_rectangle_filled(left + 20, bottom + height - 15, width - 40, 1, (255, 231, 188, 115))
-    arcade.draw_lbwh_rectangle_outline(left, bottom, width, height, PANEL_EDGE, 2)
-    arcade.draw_lbwh_rectangle_outline(left + 8, bottom + 8, width - 16, height - 16, (92, 184, 190, 86), 1)
+def draw_panel(center_x, center_y, max_width, title, lines, footer):
+    title_font_size = TITLE_FONT_SIZE if len(title) <= 24 else 24
+    footer_font_size = FOOTER_FONT_SIZE
+    body_font_size = BODY_FONT_SIZE
 
-    title_font_size = 34 if len(title) <= 24 else 28
-    title_lines = wrap_panel_lines([title], width, title_font_size, side_padding=86)[:2]
-    title_y = bottom + height - 45
+    title_lines = wrap_panel_lines([title], max_width, title_font_size, side_padding=34)[:2]
+    footer_lines = wrap_panel_lines([footer], max_width, footer_font_size, side_padding=34)[:2]
+    body_lines = wrap_panel_lines(lines, max_width, body_font_size, side_padding=34)
+
+    text_width = max(
+        max((estimate_text_width(line, title_font_size) for line in title_lines), default=0),
+        max((estimate_text_width(line, footer_font_size) for line in footer_lines), default=0),
+        max((estimate_text_width(line, body_font_size) for line in body_lines if line), default=0),
+    )
+    panel_width = min(max_width, max(220, text_width + (PANEL_PADDING_X * 2)))
+    title_lines = wrap_panel_lines([title], panel_width, title_font_size, side_padding=24)[:2]
+    footer_lines = wrap_panel_lines([footer], panel_width, footer_font_size, side_padding=24)[:2]
+    body_lines = wrap_panel_lines(lines, panel_width, body_font_size, side_padding=24)
+    body_height = max(1, len(body_lines)) * (body_font_size + 7)
+    title_height = len(title_lines) * (title_font_size + 3)
+    footer_height = len(footer_lines) * (footer_font_size + 3)
+    panel_height = min(390, max(120, title_height + body_height + footer_height + 46))
+
+    left = center_x - panel_width / 2
+    bottom = center_y - panel_height / 2
+    arcade.draw_lbwh_rectangle_filled(left + 6, bottom - 6, panel_width, panel_height, (2, 13, 25, 88))
+    arcade.draw_lbwh_rectangle_filled(left, bottom, panel_width, panel_height, PANEL_INK)
+    arcade.draw_lbwh_rectangle_filled(left, bottom + panel_height - 5, panel_width, 5, PANEL_GLOW)
+    arcade.draw_lbwh_rectangle_outline(left, bottom, panel_width, panel_height, PANEL_EDGE, 2)
+    arcade.draw_lbwh_rectangle_outline(left + 6, bottom + 6, panel_width - 12, panel_height - 12, (122, 188, 232, 88), 1)
+
+    title_y = bottom + panel_height - 30
     for line in title_lines:
         draw_title_text(line, center_x, title_y, TEXT_SOFT, title_font_size, anchor_x="center")
         title_y -= title_font_size + 2
 
-    footer_font_size = 15
-    footer_lines = wrap_panel_lines([footer], width, footer_font_size, side_padding=86)
-    while len(footer_lines) > 2 and footer_font_size > 11:
-        footer_font_size -= 1
-        footer_lines = wrap_panel_lines([footer], width, footer_font_size, side_padding=86)
-    footer_lines = footer_lines[:2]
-    footer_y = bottom + 34 + ((len(footer_lines) - 1) * (footer_font_size - 5))
+    footer_y = bottom + 20 + ((len(footer_lines) - 1) * (footer_font_size - 4))
     for line in footer_lines:
         draw_game_text(line, center_x, footer_y, TEXT_ACCENT, footer_font_size, anchor_x="center", bold=True)
         footer_y -= footer_font_size + 5
 
-    text_y = min(title_y - 20, bottom + height - 92)
-    footer_top = bottom + 68
-    body_font_size = 15
-    line_spacing = 22
-    body_lines = wrap_panel_lines(lines, width, body_font_size, side_padding=76)
-    available_lines = max(1, int((text_y - footer_top) // line_spacing) + 1)
-    while len(body_lines) > available_lines and body_font_size > 10:
-        body_font_size -= 1
-        line_spacing = body_font_size + 6
-        body_lines = wrap_panel_lines(lines, width, body_font_size, side_padding=76)
-        available_lines = max(1, int((text_y - footer_top) // line_spacing) + 1)
-
+    text_y = title_y - 18
+    line_spacing = body_font_size + 6
     for line in body_lines:
-        if text_y < footer_top:
+        if text_y < bottom + 42:
             break
         if line:
             draw_game_text(line, left + 38, text_y, TEXT_SOFT, body_font_size)
