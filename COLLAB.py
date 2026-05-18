@@ -189,6 +189,18 @@ def draw_rounded_rectangle(left, bottom, width, height, color, radius=16):
     arcade.draw_circle_filled(left + width - radius, bottom + height - radius, radius, color)
 
 
+def draw_outlined_rounded_rectangle(left, bottom, width, height, fill_color, radius=16, outline_width=4):
+    draw_rounded_rectangle(
+        left - outline_width,
+        bottom - outline_width,
+        width + (outline_width * 2),
+        height + (outline_width * 2),
+        PANEL_OUTLINE,
+        radius=radius + outline_width,
+    )
+    draw_rounded_rectangle(left, bottom, width, height, fill_color, radius=radius)
+
+
 def draw_panel(center_x, center_y, max_width, title, lines, footer):
     title_font_size = TITLE_FONT_SIZE if len(title) <= 24 else 22
     footer_font_size = FOOTER_FONT_SIZE
@@ -214,8 +226,7 @@ def draw_panel(center_x, center_y, max_width, title, lines, footer):
 
     left = center_x - panel_width / 2
     bottom = center_y - panel_height / 2
-    draw_rounded_rectangle(left - 4, bottom - 4, panel_width + 8, panel_height + 8, PANEL_OUTLINE, radius=22)
-    draw_rounded_rectangle(left, bottom, panel_width, panel_height, PANEL_INK, radius=18)
+    draw_outlined_rounded_rectangle(left, bottom, panel_width, panel_height, PANEL_INK, radius=18)
 
     title_y = bottom + panel_height - 36
     for line in title_lines:
