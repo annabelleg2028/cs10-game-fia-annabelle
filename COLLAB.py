@@ -55,13 +55,15 @@ PLAYER_HITBOX_HEIGHT = 62
 WHALE_FORWARD_ANGLE = 0
 GAME_FONT = ("Avenir Next", "Helvetica Neue", "Arial")
 TITLE_FONT = ("Avenir Next", "Helvetica Neue", "Arial")
-BODY_FONT_SIZE = 12
-TITLE_FONT_SIZE = 25
-FOOTER_FONT_SIZE = 11
+BODY_FONT_SIZE = 16
+TITLE_FONT_SIZE = 28
+FOOTER_FONT_SIZE = 14
 PANEL_PADDING_X = 26
-PANEL_INK = (22, 77, 122, 255)
-TEXT_SOFT = (249, 252, 255, 255)
-TEXT_ACCENT = (176, 218, 255, 255)
+PANEL_INK = (155, 216, 250, 235)
+PANEL_OUTLINE = (8, 45, 94, 255)
+TEXT_SOFT = (219, 241, 255, 255)
+TEXT_ACCENT = (178, 224, 255, 255)
+TEXT_OUTLINE = (5, 34, 78, 255)
 
 LEVEL_GRADIENTS = [
     ((120, 220, 218), (46, 145, 190)),
@@ -143,16 +145,31 @@ def estimate_text_width(text, font_size, padding=0):
 
 def draw_game_text(*args, **kwargs):
     kwargs.setdefault("font_name", GAME_FONT)
-    kwargs["bold"] = False
-    kwargs["italic"] = False
-    arcade.draw_text(*args, **kwargs)
+    kwargs.setdefault("bold", False)
+    kwargs.setdefault("italic", False)
+    draw_outlined_text(*args, **kwargs)
 
 
 def draw_title_text(*args, **kwargs):
     kwargs.setdefault("font_name", TITLE_FONT)
-    kwargs["bold"] = False
-    kwargs["italic"] = False
-    arcade.draw_text(*args, **kwargs)
+    kwargs.setdefault("bold", False)
+    kwargs.setdefault("italic", False)
+    draw_outlined_text(*args, **kwargs)
+
+
+def draw_outlined_text(text, x, y, color, font_size, outline_width=2, outline_color=TEXT_OUTLINE, **kwargs):
+    for offset_x, offset_y in (
+        (-outline_width, 0),
+        (outline_width, 0),
+        (0, -outline_width),
+        (0, outline_width),
+        (-outline_width, -outline_width),
+        (-outline_width, outline_width),
+        (outline_width, -outline_width),
+        (outline_width, outline_width),
+    ):
+        arcade.draw_text(text, x + offset_x, y + offset_y, outline_color, font_size, **kwargs)
+    arcade.draw_text(text, x, y, color, font_size, **kwargs)
 
 
 def draw_rounded_rectangle(left, bottom, width, height, color, radius=16):
@@ -186,36 +203,37 @@ def draw_panel(center_x, center_y, max_width, title, lines, footer):
         max((estimate_text_width(line, footer_font_size) for line in footer_lines), default=0),
         max((estimate_text_width(line, body_font_size) for line in body_lines if line), default=0),
     )
-    panel_width = min(max_width, max(220, text_width + (PANEL_PADDING_X * 2)))
-    title_lines = wrap_panel_lines([title], panel_width, title_font_size, side_padding=24)[:2]
-    footer_lines = wrap_panel_lines([footer], panel_width, footer_font_size, side_padding=24)[:2]
-    body_lines = wrap_panel_lines(lines, panel_width, body_font_size, side_padding=24)
+    panel_width = min(max_width, max(260, text_width + (PANEL_PADDING_X * 2)))
+    title_lines = wrap_panel_lines([title], panel_width, title_font_size, side_padding=48)[:2]
+    footer_lines = wrap_panel_lines([footer], panel_width, footer_font_size, side_padding=48)[:2]
+    body_lines = wrap_panel_lines(lines, panel_width, body_font_size, side_padding=58)
     body_height = max(1, len(body_lines)) * (body_font_size + 7)
     title_height = len(title_lines) * (title_font_size + 3)
     footer_height = len(footer_lines) * (footer_font_size + 3)
-    panel_height = min(420, max(140, title_height + body_height + footer_height + 56))
+    panel_height = min(500, max(170, title_height + body_height + footer_height + 72))
 
     left = center_x - panel_width / 2
     bottom = center_y - panel_height / 2
+    draw_rounded_rectangle(left - 4, bottom - 4, panel_width + 8, panel_height + 8, PANEL_OUTLINE, radius=22)
     draw_rounded_rectangle(left, bottom, panel_width, panel_height, PANEL_INK, radius=18)
 
-    title_y = bottom + panel_height - 30
+    title_y = bottom + panel_height - 36
     for line in title_lines:
         draw_title_text(line, center_x, title_y, TEXT_SOFT, title_font_size, anchor_x="center")
         title_y -= title_font_size + 2
 
-    footer_y = bottom + 20 + ((len(footer_lines) - 1) * (footer_font_size - 4))
+    footer_y = bottom + 24 + ((len(footer_lines) - 1) * (footer_font_size - 4))
     for line in footer_lines:
         draw_game_text(line, center_x, footer_y, TEXT_ACCENT, footer_font_size, anchor_x="center", bold=True)
         footer_y -= footer_font_size + 5
 
-    text_y = title_y - 18
+    text_y = title_y - 22
     line_spacing = body_font_size + 6
     for line in body_lines:
-        if text_y < bottom + 42:
+        if text_y < bottom + 54:
             break
         if line:
-            draw_game_text(line, left + 32, text_y, TEXT_ACCENT, body_font_size)
+            draw_game_text(line, left + 30, text_y, TEXT_SOFT, body_font_size)
         text_y -= line_spacing
 
 
