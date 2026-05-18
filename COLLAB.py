@@ -622,7 +622,11 @@ class GameView(arcade.View):
             heart_x = panel_left + 74 + (i * 34)
             heart_y = panel_top - 48
             alpha = 255 if i < self.health else 90
-            arcade.draw_texture_rectangle(heart_x, heart_y, 26, 26, self.heart_texture, alpha=alpha)
+            arcade.draw_texture_rect(
+                self.heart_texture,
+                arcade.LBWH(heart_x - 13, heart_y - 13, 26, 26),
+                alpha=alpha,
+            )
 
     def draw_energy_bar(self, panel_left, panel_bottom, panel_width):
         inner_left = panel_left + 18
