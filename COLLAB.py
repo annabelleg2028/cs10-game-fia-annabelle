@@ -179,6 +179,19 @@ def draw_rounded_rectangle(left, bottom, width, height, color, radius=16):
     arcade.draw_circle_filled(left + width - radius, bottom + height - radius, radius, color)
 
 
+def draw_outlined_rounded_rectangle(left, bottom, width, height, color, radius=16, outline_color=TEXT_SOFT, outline_width=2):
+    draw_rounded_rectangle(left, bottom, width, height, color, radius=radius)
+    arcade.draw_round_rect_outline(
+        left + (width / 2),
+        bottom + (height / 2),
+        width,
+        height,
+        outline_color,
+        outline_width,
+        radius=radius,
+    )
+
+
 def draw_panel(center_x, center_y, max_width, title, lines, footer):
     title_font_size = TITLE_FONT_SIZE if len(title) <= 24 else 22
     footer_font_size = FOOTER_FONT_SIZE
@@ -364,7 +377,7 @@ class GameView(arcade.View):
             hazard.kind = "boat"
             hazard.damage = 2
         elif hazard_kind == "trash":
-            hazard = arcade.SpriteSolidColor(34, 34, (116, 169, 232, 255))
+            hazard = arcade.SpriteSolidColor(34, 34, color=(116, 169, 232, 255))
             hazard.kind = "trash"
             hazard.damage = 1
         elif hazard_kind == "net":
@@ -610,15 +623,13 @@ class GameView(arcade.View):
         draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 16, TEXT_ACCENT, 12, anchor_x="center", bold=True)
 
     def draw_hud_hearts(self):
-        panel_left = SCREEN_WIDTH - 360
         heart_gap = 28
         heart_size = 24
         hearts_width = (HEALTH_MAX - 1) * heart_gap
-        start_x = panel_left + 230 - (hearts_width / 2)
+        start_x = SCREEN_WIDTH - 130 - (hearts_width / 2)
         heart_bottom = SCREEN_HEIGHT - 48
-        draw_game_text("Health", start_x - 14, heart_bottom + 6, TEXT_SOFT, 12, anchor_x="right")
+        draw_game_text("Health", start_x - 16, heart_bottom + 6, TEXT_SOFT, 12, anchor_x="right")
         for i in range(HEALTH_MAX):
-            heart_x = start_x + (i * (heart_width + HEART_ROW_GAP))
             alpha = 255 if i < self.health else 90
             arcade.draw_texture_rect(
                 self.heart_texture,
@@ -685,10 +696,8 @@ class GameView(arcade.View):
 
     def draw_outlined_status_box(self, panel_left, panel_bottom, panel_width, panel_height):
         draw_outlined_rounded_rectangle(panel_left, panel_bottom, panel_width, panel_height, PANEL_INK, radius=18)
-        center_x = panel_left + (panel_width / 2)
-        top_y = panel_bottom + panel_height
-        self.draw_hud_hearts(center_x, top_y - 8)
-        self.draw_energy_bar(center_x, top_y - 10, panel_width - (ENERGY_BAR_INSET * 2))
+        self.draw_hud_hearts()
+        self.draw_energy_bar()
 
     def draw_hazard(self, hazard):
         if hazard.kind == "trash":
