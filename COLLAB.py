@@ -54,14 +54,16 @@ PLAYER_HITBOX_WIDTH = 44
 PLAYER_HITBOX_HEIGHT = 62
 WHALE_FORWARD_ANGLE = 0
 GAME_FONT = ("Avenir Next", "Helvetica Neue", "Arial")
-TITLE_FONT = ("Avenir Next Condensed", "Avenir Next", "Helvetica Neue", "Arial")
-BODY_FONT_SIZE = 13
-TITLE_FONT_SIZE = 24
-FOOTER_FONT_SIZE = 11
+TITLE_FONT = ("Avenir Next", "Helvetica Neue", "Arial")
+BODY_FONT_SIZE = 16
+TITLE_FONT_SIZE = 28
+FOOTER_FONT_SIZE = 14
 PANEL_PADDING_X = 26
-PANEL_INK = (94, 170, 226, 245)
-TEXT_SOFT = (249, 252, 255, 255)
-TEXT_ACCENT = (220, 239, 255, 255)
+PANEL_INK = (155, 216, 250, 235)
+PANEL_OUTLINE = (8, 45, 94, 255)
+TEXT_SOFT = (219, 241, 255, 255)
+TEXT_ACCENT = (178, 224, 255, 255)
+TEXT_OUTLINE = (5, 34, 78, 255)
 
 LEVEL_GRADIENTS = [
     ((120, 220, 218), (46, 145, 190)),
@@ -143,12 +145,31 @@ def estimate_text_width(text, font_size, padding=0):
 
 def draw_game_text(*args, **kwargs):
     kwargs.setdefault("font_name", GAME_FONT)
-    arcade.draw_text(*args, **kwargs)
+    kwargs.setdefault("bold", False)
+    kwargs.setdefault("italic", False)
+    draw_outlined_text(*args, **kwargs)
 
 
 def draw_title_text(*args, **kwargs):
     kwargs.setdefault("font_name", TITLE_FONT)
-    arcade.draw_text(*args, **kwargs)
+    kwargs.setdefault("bold", False)
+    kwargs.setdefault("italic", False)
+    draw_outlined_text(*args, **kwargs)
+
+
+def draw_outlined_text(text, x, y, color, font_size, outline_width=2, outline_color=TEXT_OUTLINE, **kwargs):
+    for offset_x, offset_y in (
+        (-outline_width, 0),
+        (outline_width, 0),
+        (0, -outline_width),
+        (0, outline_width),
+        (-outline_width, -outline_width),
+        (-outline_width, outline_width),
+        (outline_width, -outline_width),
+        (outline_width, outline_width),
+    ):
+        arcade.draw_text(text, x + offset_x, y + offset_y, outline_color, font_size, **kwargs)
+    arcade.draw_text(text, x, y, color, font_size, **kwargs)
 
 
 def draw_rounded_rectangle(left, bottom, width, height, color, radius=16):
@@ -168,8 +189,20 @@ def draw_rounded_rectangle(left, bottom, width, height, color, radius=16):
     arcade.draw_circle_filled(left + width - radius, bottom + height - radius, radius, color)
 
 
+def draw_outlined_rounded_rectangle(left, bottom, width, height, fill_color, radius=16, outline_width=4):
+    draw_rounded_rectangle(
+        left - outline_width,
+        bottom - outline_width,
+        width + (outline_width * 2),
+        height + (outline_width * 2),
+        PANEL_OUTLINE,
+        radius=radius + outline_width,
+    )
+    draw_rounded_rectangle(left, bottom, width, height, fill_color, radius=radius)
+
+
 def draw_panel(center_x, center_y, max_width, title, lines, footer):
-    title_font_size = TITLE_FONT_SIZE if len(title) <= 24 else 21
+    title_font_size = TITLE_FONT_SIZE if len(title) <= 24 else 22
     footer_font_size = FOOTER_FONT_SIZE
     body_font_size = BODY_FONT_SIZE
 
@@ -182,36 +215,36 @@ def draw_panel(center_x, center_y, max_width, title, lines, footer):
         max((estimate_text_width(line, footer_font_size) for line in footer_lines), default=0),
         max((estimate_text_width(line, body_font_size) for line in body_lines if line), default=0),
     )
-    panel_width = min(max_width, max(220, text_width + (PANEL_PADDING_X * 2)))
-    title_lines = wrap_panel_lines([title], panel_width, title_font_size, side_padding=24)[:2]
-    footer_lines = wrap_panel_lines([footer], panel_width, footer_font_size, side_padding=24)[:2]
-    body_lines = wrap_panel_lines(lines, panel_width, body_font_size, side_padding=24)
+    panel_width = min(max_width, max(260, text_width + (PANEL_PADDING_X * 2)))
+    title_lines = wrap_panel_lines([title], panel_width, title_font_size, side_padding=48)[:2]
+    footer_lines = wrap_panel_lines([footer], panel_width, footer_font_size, side_padding=48)[:2]
+    body_lines = wrap_panel_lines(lines, panel_width, body_font_size, side_padding=58)
     body_height = max(1, len(body_lines)) * (body_font_size + 7)
     title_height = len(title_lines) * (title_font_size + 3)
     footer_height = len(footer_lines) * (footer_font_size + 3)
-    panel_height = min(390, max(120, title_height + body_height + footer_height + 46))
+    panel_height = min(500, max(170, title_height + body_height + footer_height + 72))
 
     left = center_x - panel_width / 2
     bottom = center_y - panel_height / 2
-    draw_rounded_rectangle(left, bottom, panel_width, panel_height, PANEL_INK, radius=18)
+    draw_outlined_rounded_rectangle(left, bottom, panel_width, panel_height, PANEL_INK, radius=18)
 
-    title_y = bottom + panel_height - 30
+    title_y = bottom + panel_height - 36
     for line in title_lines:
         draw_title_text(line, center_x, title_y, TEXT_SOFT, title_font_size, anchor_x="center")
         title_y -= title_font_size + 2
 
-    footer_y = bottom + 20 + ((len(footer_lines) - 1) * (footer_font_size - 4))
+    footer_y = bottom + 24 + ((len(footer_lines) - 1) * (footer_font_size - 4))
     for line in footer_lines:
         draw_game_text(line, center_x, footer_y, TEXT_ACCENT, footer_font_size, anchor_x="center", bold=True)
         footer_y -= footer_font_size + 5
 
-    text_y = title_y - 18
+    text_y = title_y - 22
     line_spacing = body_font_size + 6
     for line in body_lines:
-        if text_y < bottom + 42:
+        if text_y < bottom + 54:
             break
         if line:
-            draw_game_text(line, left + 38, text_y, TEXT_SOFT, body_font_size)
+            draw_game_text(line, left + 30, text_y, TEXT_SOFT, body_font_size)
         text_y -= line_spacing
 
 
@@ -533,8 +566,8 @@ class GameView(arcade.View):
         panel_bottom = 118
         panel_width = 154
         panel_height = 410
-        draw_rounded_rectangle(panel_left, panel_bottom, panel_width, panel_height, PANEL_INK, radius=18)
-        draw_title_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 24, TEXT_SOFT, 18, anchor_x="center")
+        draw_outlined_rounded_rectangle(panel_left, panel_bottom, panel_width, panel_height, PANEL_INK, radius=18)
+        draw_title_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 26, TEXT_SOFT, 20, anchor_x="center")
 
         route = [
             (panel_left + 82, panel_bottom + 54),
@@ -561,15 +594,14 @@ class GameView(arcade.View):
 
         for start_point, end_point in zip(route, route[1:]):
             arcade.draw_line(start_point[0], start_point[1], end_point[0], end_point[1], (224, 242, 255, 220), 4)
-            arcade.draw_line(start_point[0], start_point[1], end_point[0], end_point[1], (164, 212, 255, 120), 2)
 
         for label, (x, y) in labels:
             arcade.draw_circle_filled(x, y, 5, TEXT_SOFT)
-            draw_game_text(label, panel_left + 8, y - 7, TEXT_SOFT, 10)
+            draw_game_text(label, panel_left + 8, y - 8, TEXT_SOFT, 12)
 
         arcade.draw_circle_filled(marker_x, marker_y, 8, (204, 234, 255, 255))
         arcade.draw_circle_outline(marker_x, marker_y, 10, TEXT_SOFT, 2)
-        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 16, TEXT_ACCENT, 12, anchor_x="center", bold=True)
+        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 16, TEXT_SOFT, 14, anchor_x="center", bold=True)
 
     def draw_hud_hearts(self):
         panel_left = SCREEN_WIDTH - 360
@@ -577,55 +609,29 @@ class GameView(arcade.View):
         heart_gap = 28
         heart_size = 24
         hearts_width = (HEALTH_MAX - 1) * heart_gap
-<<<<<<< HEAD
-        start_x = panel_left + (panel_width / 2) - (hearts_width / 2)
-        draw_game_text("Health", panel_left + 14, 546, arcade.color.WHITE, 12)
-=======
         start_x = panel_left + 230 - (hearts_width / 2)
         draw_game_text("Health", start_x - 14, SCREEN_HEIGHT - 31, TEXT_SOFT, 12, anchor_x="right")
->>>>>>> 60a97490e93656303fca0b4e70cbc90a5d9571b4
         for i in range(HEALTH_MAX):
             alpha = 255 if i < self.health else 70
             arcade.draw_texture_rect(
                 self.heart_texture,
-                arcade.LBWH(start_x + (i * heart_gap) - heart_size / 2, 542, heart_size, heart_size),
+                arcade.LBWH(start_x + (i * heart_gap) - heart_size / 2, SCREEN_HEIGHT - 37, heart_size, heart_size),
                 alpha=alpha,
             )
 
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
-<<<<<<< HEAD
-<<<<<<< HEAD
-        arcade.draw_lbwh_rectangle_filled(12, 540, 392, 48, (0, 40, 70, 170))
-        arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 540, 336, 48, (0, 40, 70, 170))
-        draw_game_text(f"Level: {level}/{TOTAL_LEVELS}", 24, 563, arcade.color.WHITE, 15, bold=True)
-        draw_game_text(
-            f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
-            24,
-            546,
-            arcade.color.WHITE,
-            12,
-        )
-        draw_game_text(f"Points: {self.score}", SCREEN_WIDTH - 348, 563, arcade.color.WHITE, 15, bold=True)
-=======
-        arcade.draw_lbwh_rectangle_filled(12, 540, 330, 48, (5, 34, 52, 158))
-        arcade.draw_lbwh_rectangle_filled(12, 584, 330, 2, PANEL_GLOW)
-        arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 540, 336, 48, (5, 34, 52, 158))
-        arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 584, 336, 2, PANEL_GLOW)
-=======
         draw_rounded_rectangle(12, 540, 330, 48, PANEL_INK, radius=16)
         draw_rounded_rectangle(SCREEN_WIDTH - 360, 540, 336, 48, PANEL_INK, radius=16)
->>>>>>> a5a168cee7701e2b70d7940329cd724853c3510b
         draw_game_text(f"Level {level}/{TOTAL_LEVELS}", 24, 556, TEXT_SOFT, 16, bold=True)
         draw_game_text(
             f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
             145,
-            556,
+            557,
             TEXT_SOFT,
-            13,
+            14,
         )
         draw_game_text(f"Points: {self.score}", SCREEN_WIDTH - 348, 556, TEXT_SOFT, 16, bold=True)
->>>>>>> 60a97490e93656303fca0b4e70cbc90a5d9571b4
         self.draw_hud_hearts()
         self.draw_distance_scale()
 
@@ -634,8 +640,8 @@ class GameView(arcade.View):
 
         if self.level_banner_timer > 0:
             alpha = int(218 * clamp(self.level_banner_timer / 2.4, 0.0, 1.0))
-            draw_rounded_rectangle(190, 254, 420, 92, (94, 170, 226, alpha), radius=20)
-            banner_font_size = 24 if len(self.level_banner_text) <= 28 else 19
+            draw_outlined_rounded_rectangle(190, 254, 420, 92, (155, 216, 250, alpha), radius=20)
+            banner_font_size = 26 if len(self.level_banner_text) <= 28 else 21
             banner_lines = wrap_panel_lines([self.level_banner_text], 420, banner_font_size, side_padding=56)[:2]
             banner_y = 308 + ((len(banner_lines) - 1) * 12)
             for line in banner_lines:
