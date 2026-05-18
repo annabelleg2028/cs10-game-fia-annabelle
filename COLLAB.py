@@ -748,11 +748,7 @@ class GameView(arcade.View):
                 "Reporting entangled or injured marine mammals to local rescue groups also helps experts respond safely.",
             ]
         else:
-<<<<<<< HEAD
-            title = "The Whale Died"
-=======
             title = "You Did Not Make It"
->>>>>>> a5a168cee7701e2b70d7940329cd724853c3510b
             lines = [
                 "The migration ended early. During the journey, pollution, fishing gear, and boats can turn a natural route into a dangerous one.",
                 "Try again and keep an eye on the hazards. People can help by keeping trash out of waterways, recycling fishing line, supporting cleaner harbors, and giving whales space from boats.",
