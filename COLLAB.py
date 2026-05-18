@@ -576,12 +576,13 @@ class GameView(arcade.View):
         heart_size = 24
         hearts_width = (HEALTH_MAX - 1) * heart_gap
         start_x = panel_left + 230 - (hearts_width / 2)
-        draw_game_text("Health", start_x - 14, SCREEN_HEIGHT - 31, TEXT_SOFT, 12, anchor_x="right")
+        heart_bottom = SCREEN_HEIGHT - 48
+        draw_game_text("Health", start_x - 14, heart_bottom + 6, TEXT_SOFT, 12, anchor_x="right")
         for i in range(HEALTH_MAX):
             alpha = 255 if i < self.health else 70
             arcade.draw_texture_rect(
                 self.heart_texture,
-                arcade.LBWH(start_x + (i * heart_gap) - heart_size / 2, SCREEN_HEIGHT - 37, heart_size, heart_size),
+                arcade.LBWH(start_x + (i * heart_gap) - heart_size / 2, heart_bottom, heart_size, heart_size),
                 alpha=alpha,
             )
 
