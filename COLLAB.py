@@ -59,12 +59,9 @@ BODY_FONT_SIZE = 15
 TITLE_FONT_SIZE = 28
 FOOTER_FONT_SIZE = 13
 PANEL_PADDING_X = 26
-PANEL_PADDING_Y = 22
-PANEL_INK = (6, 28, 48, 224)
-PANEL_EDGE = (214, 241, 255, 230)
-PANEL_GLOW = (126, 192, 236, 88)
-TEXT_SOFT = (244, 250, 255, 255)
-TEXT_ACCENT = (187, 224, 255, 255)
+PANEL_INK = (94, 170, 226, 245)
+TEXT_SOFT = (249, 252, 255, 255)
+TEXT_ACCENT = (220, 239, 255, 255)
 
 LEVEL_GRADIENTS = [
     ((120, 220, 218), (46, 145, 190)),
@@ -154,6 +151,23 @@ def draw_title_text(*args, **kwargs):
     arcade.draw_text(*args, **kwargs)
 
 
+def draw_rounded_rectangle(left, bottom, width, height, color, radius=16):
+    radius = max(4, min(radius, int(min(width, height) / 2)))
+    core_width = max(0, width - (radius * 2))
+    core_height = max(0, height - (radius * 2))
+
+    if core_width > 0:
+        arcade.draw_lbwh_rectangle_filled(left + radius, bottom, core_width, height, color)
+    if core_height > 0:
+        arcade.draw_lbwh_rectangle_filled(left, bottom + radius, radius, core_height, color)
+        arcade.draw_lbwh_rectangle_filled(left + width - radius, bottom + radius, radius, core_height, color)
+
+    arcade.draw_circle_filled(left + radius, bottom + radius, radius, color)
+    arcade.draw_circle_filled(left + width - radius, bottom + radius, radius, color)
+    arcade.draw_circle_filled(left + radius, bottom + height - radius, radius, color)
+    arcade.draw_circle_filled(left + width - radius, bottom + height - radius, radius, color)
+
+
 def draw_panel(center_x, center_y, max_width, title, lines, footer):
     title_font_size = TITLE_FONT_SIZE if len(title) <= 24 else 24
     footer_font_size = FOOTER_FONT_SIZE
@@ -179,7 +193,7 @@ def draw_panel(center_x, center_y, max_width, title, lines, footer):
 
     left = center_x - panel_width / 2
     bottom = center_y - panel_height / 2
-    arcade.draw_lbwh_rectangle_filled(left, bottom, panel_width, panel_height, (8, 42, 78, 255))
+    draw_rounded_rectangle(left, bottom, panel_width, panel_height, PANEL_INK, radius=18)
 
     title_y = bottom + panel_height - 30
     for line in title_lines:
@@ -515,7 +529,7 @@ class GameView(arcade.View):
         panel_bottom = 118
         panel_width = 154
         panel_height = 332
-        arcade.draw_lbwh_rectangle_filled(panel_left, panel_bottom, panel_width, panel_height, (8, 42, 78, 255))
+        draw_rounded_rectangle(panel_left, panel_bottom, panel_width, panel_height, PANEL_INK, radius=18)
         draw_title_text("Route", panel_left + panel_width / 2, panel_bottom + panel_height - 24, TEXT_SOFT, 18, anchor_x="center")
 
         route_y = [panel_bottom + 48, panel_bottom + 108, panel_bottom + 170, panel_bottom + 232, panel_bottom + 286]
@@ -549,8 +563,8 @@ class GameView(arcade.View):
 
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
-        arcade.draw_lbwh_rectangle_filled(12, 540, 330, 48, (8, 42, 78, 255))
-        arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 540, 336, 48, (8, 42, 78, 255))
+        draw_rounded_rectangle(12, 540, 330, 48, PANEL_INK, radius=16)
+        draw_rounded_rectangle(SCREEN_WIDTH - 360, 540, 336, 48, PANEL_INK, radius=16)
         draw_game_text(f"Level {level}/{TOTAL_LEVELS}", 24, 556, TEXT_SOFT, 16, bold=True)
         draw_game_text(
             f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
@@ -568,7 +582,7 @@ class GameView(arcade.View):
 
         if self.level_banner_timer > 0:
             alpha = int(218 * clamp(self.level_banner_timer / 2.4, 0.0, 1.0))
-            arcade.draw_lbwh_rectangle_filled(190, 254, 420, 92, (8, 42, 78, alpha))
+            draw_rounded_rectangle(190, 254, 420, 92, (94, 170, 226, alpha), radius=20)
             banner_font_size = 24 if len(self.level_banner_text) <= 28 else 19
             banner_lines = wrap_panel_lines([self.level_banner_text], 420, banner_font_size, side_padding=56)[:2]
             banner_y = 308 + ((len(banner_lines) - 1) * 12)
@@ -763,13 +777,13 @@ class GameView(arcade.View):
         self.draw_ui()
 
         if self.game_state == "intro":
-            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (2, 16, 34, 175))
+            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (8, 38, 66, 170))
             self.draw_intro()
         elif self.game_state == "lesson":
-            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (2, 16, 34, 175))
+            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (8, 38, 66, 170))
             self.draw_lesson()
         elif self.is_game_over or self.won:
-            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (2, 16, 34, 180))
+            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (8, 38, 66, 180))
             self.draw_end_explanation()
 
     def on_update(self, delta_time):
