@@ -428,6 +428,10 @@ class GameView(arcade.View):
         hazard_cols = []
         distance_ratio = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
         difficulty = self.level_ratio
+        hazard_total = 0
+        safe_choices = []
+        hazard_kind_pool = []
+        boat_chance = 0.0
 
         can_spawn_boats = self.current_level >= 3
         if can_spawn_boats and self.rows_since_last_patrol >= 1 and random.random() < (0.10 + difficulty * 0.20):
