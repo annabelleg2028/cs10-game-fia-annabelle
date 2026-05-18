@@ -15,6 +15,8 @@ ASSET_DIR = Path(__file__).parent
 OCEAN_IMAGE = ASSET_DIR / "ocean.png"
 WHALE_IMAGE = ASSET_DIR / "whale.png"
 HEART_IMAGE = ASSET_DIR / "heart.png"
+NET_IMAGE = ASSET_DIR / "fishingnet.png"
+BOAT_IMAGE = ASSET_DIR / "fishingboat.png"
 FISH_IMAGES = [
     ASSET_DIR / "fish1.png",
     ASSET_DIR / "fish2.png",
@@ -34,6 +36,8 @@ PATROL_SPEED = 2
 
 WHALE_SCALE = 0.13
 FISH_SCALE = 0.07
+NET_SCALE = 0.092
+BOAT_SCALE = 0.125
 PLAYER_START_Y = 120
 
 TOTAL_LEVELS = 10
@@ -49,7 +53,13 @@ ROW_HEIGHT = 80
 PLAYER_HITBOX_WIDTH = 44
 PLAYER_HITBOX_HEIGHT = 62
 WHALE_FORWARD_ANGLE = 0
-GAME_FONT = ("Italianno", "Italiana", "Georgia", "Times New Roman", "Arial")
+GAME_FONT = ("Avenir Next", "Gill Sans", "Georgia", "Arial")
+TITLE_FONT = ("Snell Roundhand", "Noteworthy", "Georgia", "Times New Roman")
+PANEL_INK = (7, 31, 45, 224)
+PANEL_EDGE = (201, 239, 235, 230)
+PANEL_GLOW = (245, 181, 120, 78)
+TEXT_SOFT = (235, 250, 246, 255)
+TEXT_ACCENT = (255, 204, 128, 255)
 
 LEVEL_GRADIENTS = [
     ((120, 220, 218), (46, 145, 190)),
