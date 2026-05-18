@@ -800,8 +800,8 @@ class GameView(arcade.View):
             return
 
         difficulty = self.level_ratio
-        wave = 1.0 + (0.25 * math.sin(self.distance_traveled / 350.0))
-        current_scroll = clamp(SCROLL_SPEED + ((difficulty ** 1.2) * 5.6) + (wave * 0.35), 3.6, 9.8)
+        wave = 1.0 + (0.18 * math.sin(self.distance_traveled / 360.0))
+        current_scroll = clamp(SCROLL_SPEED + ((difficulty ** 1.2) * 3.2) + (wave * 0.18), 2.2, 6.2)
 
         self.distance_traveled += current_scroll
         self.next_spawn_y -= current_scroll
