@@ -319,14 +319,14 @@ class GameView(arcade.View):
 
     def choose_hazard_kind(self):
         if self.current_level == 1:
-            return "trash" if random.random() < 0.50 else "net"
+            return "trash" if random.random() < 0.35 else "net"
         if self.current_level == 2:
-            return "trash" if random.random() < 0.42 else "net"
+            return "trash" if random.random() < 0.30 else "net"
 
         roll = random.random()
-        if roll < 0.42:
+        if roll < 0.32:
             return "net"
-        if roll < 0.74:
+        if roll < 0.78:
             return "trash"
         return "boat"
 
@@ -360,7 +360,7 @@ class GameView(arcade.View):
         if hazard_kind == "boat":
             hazard = arcade.Sprite(BOAT_IMAGE, scale=BOAT_SCALE)
             hazard.kind = "boat"
-            hazard.damage = 2
+            hazard.damage = 1
         elif hazard_kind == "trash":
             hazard = arcade.SpriteSolidColor(34, 34, (116, 169, 232, 255))
             hazard.kind = "trash"
@@ -383,7 +383,7 @@ class GameView(arcade.View):
         token = arcade.Sprite(texture_path, scale=FISH_SCALE * (1.15 if is_school else 1.0))
         token.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
         token.center_y = self.next_spawn_y + (ROW_HEIGHT / 2)
-        hidden_trash_chance = clamp(0.15 + (self.level_ratio * 0.30), 0.15, 0.45)
+        hidden_trash_chance = clamp(0.10 + (self.level_ratio * 0.20), 0.10, 0.30)
         token.value = random.choice([-10, -5]) if random.random() < hidden_trash_chance else random.choice([5, 10, 15, 20])
         token.kind = "fish"
         token.is_trash = token.value < 0
@@ -396,12 +396,12 @@ class GameView(arcade.View):
         distance_ratio = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
         difficulty = self.level_ratio
 
-        can_spawn_boats = self.current_level >= 3
-        if can_spawn_boats and self.rows_since_last_patrol >= 0 and random.random() < (0.12 + difficulty * 0.38):
+        can_spawn_boats = self.current_level >= 4
+        if can_spawn_boats and self.rows_since_last_patrol >= 1 and random.random() < (0.06 + difficulty * 0.16):
             h_col = random.choice(all_cols)
             occupied_cols.append(h_col)
             hazard = self.spawn_hazard(h_col, "boat")
-            patrol_speed = PATROL_SPEED + difficulty * 2.2
+            patrol_speed = PATROL_SPEED + difficulty * 1.2
             hazard.change_x = patrol_speed if random.random() > 0.5 else -patrol_speed
             self.prev_hazard_cols = [h_col]
             self.rows_since_last_patrol = 0
@@ -418,13 +418,13 @@ class GameView(arcade.View):
                 safe_choices = all_cols
 
             hazard_total = 1
-            if self.current_level >= 3 and random.random() < (0.28 + difficulty * 0.42):
+            if self.current_level >= 3 and random.random() < (0.16 + difficulty * 0.18):
                 hazard_total += 1
-            if self.current_level >= 5 and random.random() < (0.18 + difficulty * 0.38):
+            if self.current_level >= 5 and random.random() < (0.09 + difficulty * 0.14):
                 hazard_total += 1
-            if self.current_level >= 8 and random.random() < (0.12 + difficulty * 0.34):
+            if self.current_level >= 8 and random.random() < (0.05 + difficulty * 0.10):
                 hazard_total += 1
-            if self.current_level >= 10 and random.random() < (0.10 + difficulty * 0.24):
+            if self.current_level >= 10 and random.random() < (0.04 + difficulty * 0.08):
                 hazard_total += 1
 
             for _ in range(min(hazard_total, len(safe_choices))):
@@ -436,14 +436,14 @@ class GameView(arcade.View):
             self.prev_hazard_cols = occupied_cols
 
             remaining_cols = [c for c in all_cols if c not in occupied_cols]
-            fish_chance = clamp(0.56 - difficulty * 0.34 + (0.16 if self.health <= 2 else 0.0), 0.14, 0.72)
+            fish_chance = clamp(0.68 - difficulty * 0.18 + (0.18 if self.health <= 2 else 0.0), 0.22, 0.82)
             if self.current_level >= 2 and remaining_cols and random.random() < fish_chance:
                 token_col = random.choice(remaining_cols)
                 occupied_cols.append(token_col)
                 remaining_cols.remove(token_col)
                 self.spawn_token(token_col)
 
-            school_chance = clamp(0.32 - difficulty * 0.18, 0.10, 0.32)
+            school_chance = clamp(0.40 - difficulty * 0.12, 0.16, 0.42)
             if self.current_level >= 2 and remaining_cols and random.random() < school_chance and distance_ratio > 0.15:
                 lane = random.choice(remaining_cols)
                 neighbor_lanes = [lane]
@@ -526,60 +526,29 @@ class GameView(arcade.View):
         mix = smoothstep((band_center - transition_y + (LEVEL_TRANSITION_BAND / 2)) / LEVEL_TRANSITION_BAND)
         return blend_color(previous_color, current_color, mix)
 
-    def draw_grid_lines(self):
-        line_color = (210, 245, 250, 50)
-        for i in range(GRID_COLUMNS + 1):
-            x = i * LANE_WIDTH
-            arcade.draw_line(x, 0, x, SCREEN_HEIGHT, line_color, 2)
-
-        line_y = self.next_spawn_y % self.row_height
-        while line_y < SCREEN_HEIGHT:
-            arcade.draw_line(0, line_y, SCREEN_WIDTH, line_y, line_color, 2)
-            line_y += self.row_height
-
     def draw_distance_scale(self):
-        panel_left = SCREEN_WIDTH - 156
-        panel_bottom = 92
-        panel_width = 132
-        panel_height = 410
-        arcade.draw_lbwh_rectangle_filled(panel_left + 5, panel_bottom - 5, panel_width, panel_height, (2, 13, 25, 82))
-        arcade.draw_lbwh_rectangle_filled(panel_left, panel_bottom, panel_width, panel_height, (4, 39, 58, 154))
-        arcade.draw_lbwh_rectangle_outline(panel_left, panel_bottom, panel_width, panel_height, (204, 241, 232, 176), 1)
-        draw_title_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 28, TEXT_SOFT, 18, anchor_x="center")
+        panel_left = SCREEN_WIDTH - 178
+        panel_bottom = 118
+        panel_width = 154
+        panel_height = 332
+        arcade.draw_lbwh_rectangle_filled(panel_left, panel_bottom, panel_width, panel_height, (5, 27, 44, 150))
+        arcade.draw_lbwh_rectangle_outline(panel_left, panel_bottom, panel_width, panel_height, (214, 241, 255, 170), 1)
+        draw_title_text("Route", panel_left + panel_width / 2, panel_bottom + panel_height - 24, TEXT_SOFT, 18, anchor_x="center")
 
-        route = [
-            (panel_left + 82, panel_bottom + 54),
-            (panel_left + 58, panel_bottom + 130),
-            (panel_left + 70, panel_bottom + 205),
-            (panel_left + 48, panel_bottom + 285),
-            (panel_left + 76, panel_bottom + 356),
-        ]
-        for start, end in zip(route, route[1:]):
-            arcade.draw_line(start[0], start[1], end[0], end[1], (246, 216, 164, 225), 4)
-            arcade.draw_line(start[0], start[1], end[0], end[1], (92, 201, 202, 180), 2)
-
-        labels = [
-            ("Baja", route[0]),
-            ("CA", route[1]),
-            ("OR/WA", route[2]),
-            ("B.C.", route[3]),
-            ("Alaska", route[4]),
-        ]
-        for label, (x, y) in labels:
-            arcade.draw_circle_filled(x, y, 5, TEXT_SOFT)
-            draw_game_text(label, panel_left + 8, y - 7, TEXT_SOFT, 10)
-
+        route_y = [panel_bottom + 48, panel_bottom + 108, panel_bottom + 170, panel_bottom + 232, panel_bottom + 286]
+        labels = ["Baja", "CA", "OR/WA", "B.C.", "Alaska"]
         progress = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
-        segment_progress = progress * (len(route) - 1)
-        segment_index = min(len(route) - 2, int(segment_progress))
-        local_progress = segment_progress - segment_index
-        start = route[segment_index]
-        end = route[segment_index + 1]
-        marker_x = start[0] + ((end[0] - start[0]) * local_progress)
-        marker_y = start[1] + ((end[1] - start[1]) * local_progress)
-        arcade.draw_circle_filled(marker_x, marker_y, 8, (242, 137, 111, 255))
-        arcade.draw_circle_outline(marker_x, marker_y, 10, TEXT_SOFT, 2)
-        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 14, TEXT_ACCENT, 12, anchor_x="center", bold=True)
+        marker_index = min(len(route_y) - 1, int(progress * (len(route_y) - 1)))
+        marker_y = route_y[marker_index]
+
+        arcade.draw_line(panel_left + 28, route_y[0], panel_left + 28, route_y[-1], (214, 241, 255, 120), 2)
+        for idx, (label, y) in enumerate(zip(labels, route_y)):
+            arc_color = (214, 241, 255, 255) if idx <= marker_index else (162, 194, 224, 145)
+            arcade.draw_rectangle_filled(panel_left + 28, y, 18, 4, arc_color)
+            draw_game_text(label, panel_left + 48, y - 6, TEXT_SOFT, 10)
+
+        arcade.draw_rectangle_filled(panel_left + 28, marker_y, 22, 8, (180, 226, 255, 255))
+        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 16, TEXT_ACCENT, 12, anchor_x="center", bold=True)
 
     def draw_hud_hearts(self):
         panel_left = SCREEN_WIDTH - 360
