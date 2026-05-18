@@ -143,14 +143,14 @@ def estimate_text_width(text, font_size, padding=0):
 
 def draw_game_text(*args, **kwargs):
     kwargs.setdefault("font_name", GAME_FONT)
-    kwargs["bold"] = False
+    kwargs["bold"] = True
     kwargs["italic"] = False
     arcade.draw_text(*args, **kwargs)
 
 
 def draw_title_text(*args, **kwargs):
     kwargs.setdefault("font_name", TITLE_FONT)
-    kwargs["bold"] = False
+    kwargs["bold"] = True
     kwargs["italic"] = False
     arcade.draw_text(*args, **kwargs)
 
