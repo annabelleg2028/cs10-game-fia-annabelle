@@ -53,11 +53,11 @@ ROW_HEIGHT = 80
 PLAYER_HITBOX_WIDTH = 44
 PLAYER_HITBOX_HEIGHT = 62
 WHALE_FORWARD_ANGLE = 0
-GAME_FONT = ("Helvetica Neue", "Avenir Next", "Arial")
-TITLE_FONT = ("Helvetica Neue", "Avenir Next", "Arial")
-BODY_FONT_SIZE = 15
-TITLE_FONT_SIZE = 28
-FOOTER_FONT_SIZE = 13
+GAME_FONT = ("Avenir Next", "Helvetica Neue", "Arial")
+TITLE_FONT = ("Avenir Next Condensed", "Avenir Next", "Helvetica Neue", "Arial")
+BODY_FONT_SIZE = 13
+TITLE_FONT_SIZE = 24
+FOOTER_FONT_SIZE = 11
 PANEL_PADDING_X = 26
 PANEL_INK = (94, 170, 226, 245)
 TEXT_SOFT = (249, 252, 255, 255)
@@ -169,7 +169,7 @@ def draw_rounded_rectangle(left, bottom, width, height, color, radius=16):
 
 
 def draw_panel(center_x, center_y, max_width, title, lines, footer):
-    title_font_size = TITLE_FONT_SIZE if len(title) <= 24 else 24
+    title_font_size = TITLE_FONT_SIZE if len(title) <= 24 else 21
     footer_font_size = FOOTER_FONT_SIZE
     body_font_size = BODY_FONT_SIZE
 
