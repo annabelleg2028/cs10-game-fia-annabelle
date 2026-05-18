@@ -405,15 +405,14 @@ class GameView(arcade.View):
         return token
 
     def fish_spawn_chance(self):
-        level_index = self.current_level - 1
-        base_chance = clamp(0.68 - (level_index * 0.045), 0.18, 0.68)
+        distance_ratio = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
+        base_chance = clamp(0.48 - (distance_ratio * 0.18), 0.18, 0.72)
         if self.energy <= 30:
-            base_chance += 0.04
-        return clamp(base_chance, 0.18, 0.74)
+            base_chance += 0.18
+        return clamp(base_chance, 0.18, 0.72)
 
     def fish_school_chance(self):
-        level_index = self.current_level - 1
-        base_chance = clamp(0.10 - (level_index * 0.006), 0.03, 0.10)
+        base_chance = 0.32
         if self.energy <= 30:
             base_chance += 0.02
         return clamp(base_chance, 0.03, 0.12)
@@ -468,10 +467,10 @@ class GameView(arcade.View):
 
         remaining_cols = [c for c in all_cols if c not in occupied_cols]
         fish_chance = self.fish_spawn_chance()
-        for token_col in list(remaining_cols):
-            if random.random() < fish_chance:
-                occupied_cols.append(token_col)
-                self.spawn_token(token_col)
+        if remaining_cols and random.random() < fish_chance:
+            token_col = random.choice(remaining_cols)
+            occupied_cols.append(token_col)
+            self.spawn_token(token_col)
 
         school_chance = self.fish_school_chance()
         remaining_cols = [c for c in all_cols if c not in occupied_cols]
