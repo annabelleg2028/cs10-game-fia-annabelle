@@ -588,7 +588,7 @@ class GameView(arcade.View):
 
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
-        draw_rounded_rectangle(12, 540, 330, 48, PANEL_INK, radius=16)
+        draw_rounded_rectangle(12, 540, 400, 48, PANEL_INK, radius=16)
         draw_rounded_rectangle(SCREEN_WIDTH - 360, 540, 336, 48, PANEL_INK, radius=16)
         draw_game_text(f"Level {level}/{TOTAL_LEVELS}", 24, 556, TEXT_SOFT, 16, bold=True)
         draw_game_text(
