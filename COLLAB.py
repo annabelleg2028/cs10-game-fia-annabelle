@@ -219,43 +219,6 @@ def draw_trash(center_x, center_y, scale=1.0):
     )
 
 
-def draw_net(center_x, center_y, scale=1.0):
-    width = 72 * scale
-    height = 24 * scale
-    arcade.draw_lbwh_rectangle_filled(
-        center_x - width / 2,
-        center_y - height / 2,
-        width,
-        height,
-        (190, 210, 220, 210),
-    )
-    for i in range(4):
-        x = center_x - width / 2 + (i + 1) * width / 5
-        arcade.draw_line(x, center_y - height / 2, x, center_y + height / 2, (30, 80, 95, 130), 1)
-    for i in range(2):
-        y = center_y - height / 2 + (i + 1) * height / 3
-        arcade.draw_line(center_x - width / 2, y, center_x + width / 2, y, (30, 80, 95, 130), 1)
-
-
-def draw_boat(center_x, center_y, scale=1.0):
-    width = 82 * scale
-    height = 28 * scale
-    arcade.draw_lbwh_rectangle_filled(
-        center_x - width / 2,
-        center_y - height / 2,
-        width,
-        height,
-        (70, 78, 88, 255),
-    )
-    arcade.draw_lbwh_rectangle_filled(
-        center_x - width * 0.28,
-        center_y + height * 0.15,
-        width * 0.22,
-        height * 0.35,
-        (120, 90, 55, 255),
-    )
-
-
 class GameView(arcade.View):
     def __init__(self):
         super().__init__()
@@ -263,6 +226,8 @@ class GameView(arcade.View):
         self.ocean = arcade.load_texture(OCEAN_IMAGE)
         self.whale_texture = arcade.load_texture(WHALE_IMAGE)
         self.heart_texture = arcade.load_texture(HEART_IMAGE)
+        self.net_texture = arcade.load_texture(NET_IMAGE)
+        self.boat_texture = arcade.load_texture(BOAT_IMAGE)
         self.fish_textures = [arcade.load_texture(path) for path in FISH_IMAGES]
         self.player_sprite = None
 
@@ -381,7 +346,7 @@ class GameView(arcade.View):
 
     def spawn_hazard(self, col, hazard_kind=None):
         if hazard_kind == "boat":
-            hazard = arcade.SpriteSolidColor(82, 28, (70, 78, 88, 255))
+            hazard = arcade.Sprite(BOAT_IMAGE, scale=BOAT_SCALE)
             hazard.kind = "boat"
             hazard.damage = 2
         elif hazard_kind == "trash":
@@ -389,13 +354,12 @@ class GameView(arcade.View):
             hazard.kind = "trash"
             hazard.damage = 1
         elif hazard_kind == "net":
-            hazard = arcade.SpriteSolidColor(76, 26, (190, 210, 220, 210))
+            hazard = arcade.Sprite(NET_IMAGE, scale=NET_SCALE)
             hazard.kind = "net"
             hazard.damage = 1
         else:
             return self.spawn_hazard(col, self.choose_hazard_kind())
 
-        hazard.alpha = 0
         hazard.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
         hazard.center_y = self.next_spawn_y + (ROW_HEIGHT / 2)
         hazard.change_x = 0
