@@ -179,11 +179,7 @@ def draw_panel(center_x, center_y, max_width, title, lines, footer):
 
     left = center_x - panel_width / 2
     bottom = center_y - panel_height / 2
-    arcade.draw_lbwh_rectangle_filled(left + 6, bottom - 6, panel_width, panel_height, (2, 13, 25, 88))
-    arcade.draw_lbwh_rectangle_filled(left, bottom, panel_width, panel_height, PANEL_INK)
-    arcade.draw_lbwh_rectangle_filled(left, bottom + panel_height - 5, panel_width, 5, PANEL_GLOW)
-    arcade.draw_lbwh_rectangle_outline(left, bottom, panel_width, panel_height, PANEL_EDGE, 2)
-    arcade.draw_lbwh_rectangle_outline(left + 6, bottom + 6, panel_width - 12, panel_height - 12, (122, 188, 232, 88), 1)
+    arcade.draw_lbwh_rectangle_filled(left, bottom, panel_width, panel_height, (8, 42, 78, 255))
 
     title_y = bottom + panel_height - 30
     for line in title_lines:
@@ -214,21 +210,11 @@ def draw_heart(center_x, center_y, size, color):
         y = 13 * math.cos(angle) - 5 * math.cos(2 * angle) - 2 * math.cos(3 * angle) - math.cos(4 * angle)
         points.append((center_x + x * scale, center_y + (y - 2) * scale))
     arcade.draw_polygon_filled(points, color)
-    arcade.draw_polygon_outline(points, (255, 235, 235, 180), max(1, int(size * 0.08)))
 
 
 def draw_trash(center_x, center_y, scale=1.0):
     radius = 13 * scale
     arcade.draw_circle_filled(center_x, center_y, radius, (116, 169, 232, 255))
-    arcade.draw_circle_outline(center_x, center_y, radius + 2, (222, 241, 255, 210), 2)
-    arcade.draw_line(
-        center_x - radius * 0.5,
-        center_y - radius * 0.3,
-        center_x + radius * 0.45,
-        center_y + radius * 0.35,
-        (239, 249, 255, 255),
-        2,
-    )
 
 
 class GameView(arcade.View):
@@ -502,8 +488,6 @@ class GameView(arcade.View):
 
         if transition_y is not None:
             line_alpha = int(220 * (1.0 - abs(0.5 - transition_amount) * 0.75))
-            arcade.draw_line(0, transition_y, SCREEN_WIDTH, transition_y, (230, 250, 255, line_alpha), 3)
-            arcade.draw_line(0, transition_y - 4, SCREEN_WIDTH, transition_y - 4, (80, 190, 220, 90), 1)
             label_y = clamp(transition_y + 12, 34, SCREEN_HEIGHT - 66)
             draw_game_text(
                 f"Level {self.current_level}",
@@ -531,8 +515,7 @@ class GameView(arcade.View):
         panel_bottom = 118
         panel_width = 154
         panel_height = 332
-        arcade.draw_lbwh_rectangle_filled(panel_left, panel_bottom, panel_width, panel_height, (5, 27, 44, 150))
-        arcade.draw_lbwh_rectangle_outline(panel_left, panel_bottom, panel_width, panel_height, (214, 241, 255, 170), 1)
+        arcade.draw_lbwh_rectangle_filled(panel_left, panel_bottom, panel_width, panel_height, (8, 42, 78, 255))
         draw_title_text("Route", panel_left + panel_width / 2, panel_bottom + panel_height - 24, TEXT_SOFT, 18, anchor_x="center")
 
         route_y = [panel_bottom + 48, panel_bottom + 108, panel_bottom + 170, panel_bottom + 232, panel_bottom + 286]
@@ -541,7 +524,6 @@ class GameView(arcade.View):
         marker_index = min(len(route_y) - 1, int(progress * (len(route_y) - 1)))
         marker_y = route_y[marker_index]
 
-        arcade.draw_line(panel_left + 28, route_y[0], panel_left + 28, route_y[-1], (214, 241, 255, 120), 2)
         for idx, (label, y) in enumerate(zip(labels, route_y)):
             arc_color = (214, 241, 255, 255) if idx <= marker_index else (162, 194, 224, 145)
             arcade.draw_lbwh_rectangle_filled(panel_left + 19, y - 2, 18, 4, arc_color)
@@ -567,10 +549,8 @@ class GameView(arcade.View):
 
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
-        arcade.draw_lbwh_rectangle_filled(12, 540, 330, 48, (5, 34, 52, 158))
-        arcade.draw_lbwh_rectangle_filled(12, 584, 330, 2, PANEL_GLOW)
-        arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 540, 336, 48, (5, 34, 52, 158))
-        arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 584, 336, 2, PANEL_GLOW)
+        arcade.draw_lbwh_rectangle_filled(12, 540, 330, 48, (8, 42, 78, 255))
+        arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 540, 336, 48, (8, 42, 78, 255))
         draw_game_text(f"Level {level}/{TOTAL_LEVELS}", 24, 556, TEXT_SOFT, 16, bold=True)
         draw_game_text(
             f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
@@ -588,9 +568,7 @@ class GameView(arcade.View):
 
         if self.level_banner_timer > 0:
             alpha = int(218 * clamp(self.level_banner_timer / 2.4, 0.0, 1.0))
-            arcade.draw_lbwh_rectangle_filled(190, 254, 420, 92, (7, 31, 45, alpha))
-            arcade.draw_lbwh_rectangle_filled(190, 339, 420, 4, (162, 214, 255, min(160, alpha)))
-            arcade.draw_lbwh_rectangle_outline(190, 254, 420, 92, (201, 239, 235, min(255, alpha + 30)), 2)
+            arcade.draw_lbwh_rectangle_filled(190, 254, 420, 92, (8, 42, 78, alpha))
             banner_font_size = 24 if len(self.level_banner_text) <= 28 else 19
             banner_lines = wrap_panel_lines([self.level_banner_text], 420, banner_font_size, side_padding=56)[:2]
             banner_y = 308 + ((len(banner_lines) - 1) * 12)
