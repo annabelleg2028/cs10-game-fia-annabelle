@@ -575,8 +575,13 @@ class GameView(arcade.View):
         heart_gap = 28
         heart_size = 24
         hearts_width = (HEALTH_MAX - 1) * heart_gap
+<<<<<<< HEAD
         start_x = panel_left + (panel_width / 2) - (hearts_width / 2)
         draw_game_text("Health", panel_left + 14, 546, arcade.color.WHITE, 12)
+=======
+        start_x = panel_left + 230 - (hearts_width / 2)
+        draw_game_text("Health", start_x - 14, SCREEN_HEIGHT - 31, TEXT_SOFT, 12, anchor_x="right")
+>>>>>>> 60a97490e93656303fca0b4e70cbc90a5d9571b4
         for i in range(HEALTH_MAX):
             alpha = 255 if i < self.health else 70
             arcade.draw_texture_rect(
@@ -587,6 +592,7 @@ class GameView(arcade.View):
 
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
+<<<<<<< HEAD
         arcade.draw_lbwh_rectangle_filled(12, 540, 392, 48, (0, 40, 70, 170))
         arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 540, 336, 48, (0, 40, 70, 170))
         draw_game_text(f"Level: {level}/{TOTAL_LEVELS}", 24, 563, arcade.color.WHITE, 15, bold=True)
@@ -598,6 +604,21 @@ class GameView(arcade.View):
             12,
         )
         draw_game_text(f"Points: {self.score}", SCREEN_WIDTH - 348, 563, arcade.color.WHITE, 15, bold=True)
+=======
+        arcade.draw_lbwh_rectangle_filled(12, 540, 330, 48, (5, 34, 52, 158))
+        arcade.draw_lbwh_rectangle_filled(12, 584, 330, 2, PANEL_GLOW)
+        arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 540, 336, 48, (5, 34, 52, 158))
+        arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 584, 336, 2, PANEL_GLOW)
+        draw_game_text(f"Level {level}/{TOTAL_LEVELS}", 24, 556, TEXT_SOFT, 16, bold=True)
+        draw_game_text(
+            f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
+            145,
+            556,
+            TEXT_SOFT,
+            13,
+        )
+        draw_game_text(f"Points: {self.score}", SCREEN_WIDTH - 348, 556, TEXT_SOFT, 16, bold=True)
+>>>>>>> 60a97490e93656303fca0b4e70cbc90a5d9571b4
         self.draw_hud_hearts()
         self.draw_distance_scale()
 
@@ -606,8 +627,9 @@ class GameView(arcade.View):
 
         if self.level_banner_timer > 0:
             alpha = int(218 * clamp(self.level_banner_timer / 2.4, 0.0, 1.0))
-            arcade.draw_lbwh_rectangle_filled(190, 254, 420, 92, (0, 35, 55, alpha))
-            arcade.draw_lbwh_rectangle_outline(190, 254, 420, 92, (170, 230, 240, min(255, alpha + 30)), 2)
+            arcade.draw_lbwh_rectangle_filled(190, 254, 420, 92, (7, 31, 45, alpha))
+            arcade.draw_lbwh_rectangle_filled(190, 339, 420, 4, (245, 181, 120, min(160, alpha)))
+            arcade.draw_lbwh_rectangle_outline(190, 254, 420, 92, (201, 239, 235, min(255, alpha + 30)), 2)
             banner_font_size = 24 if len(self.level_banner_text) <= 28 else 19
             banner_lines = wrap_panel_lines([self.level_banner_text], 420, banner_font_size, side_padding=56)[:2]
             banner_y = 308 + ((len(banner_lines) - 1) * 12)
@@ -616,7 +638,7 @@ class GameView(arcade.View):
                     line,
                     SCREEN_WIDTH / 2,
                     banner_y,
-                    arcade.color.WHITE,
+                    TEXT_SOFT,
                     banner_font_size,
                     anchor_x="center",
                     anchor_y="center",
@@ -627,10 +649,13 @@ class GameView(arcade.View):
     def draw_hazard(self, hazard):
         if hazard.kind == "trash":
             draw_trash(hazard.center_x, hazard.center_y, 1.0)
-        elif hazard.kind == "boat":
-            draw_boat(hazard.center_x, hazard.center_y, 1.0)
         else:
-            draw_net(hazard.center_x, hazard.center_y, 1.0)
+            arcade.draw_texture_rect(
+                hazard.texture,
+                arcade.LBWH(hazard.left, hazard.bottom, hazard.width, hazard.height),
+                angle=hazard.angle,
+                alpha=hazard.alpha,
+            )
 
     def touches_visible_hazard(self, hazard):
         player_x = self.player_sprite.center_x
@@ -654,9 +679,9 @@ class GameView(arcade.View):
                 PLAYER_HITBOX_WIDTH,
                 PLAYER_HITBOX_HEIGHT,
                 hazard.center_x,
-                hazard.center_y + 4,
-                82,
-                38,
+                hazard.center_y - 12,
+                94,
+                46,
             )
 
         return rectangles_overlap(
@@ -666,8 +691,8 @@ class GameView(arcade.View):
             PLAYER_HITBOX_HEIGHT,
             hazard.center_x,
             hazard.center_y,
-            72,
-            24,
+            70,
+            68,
         )
 
     def start_lesson(self, lesson_key, return_state="playing"):
