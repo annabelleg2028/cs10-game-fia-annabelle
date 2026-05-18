@@ -286,9 +286,9 @@ class GameView(arcade.View):
         self.net_texture = arcade.load_texture(NET_IMAGE)
         self.boat_texture = arcade.load_texture(BOAT_IMAGE)
         if Image is not None:
-            heart_image = Image.open(HEART_IMAGE).convert("RGBA")
-            alpha = heart_image.getchannel("A")
-            heart_bbox = alpha.getbbox()
+            with Image.open(HEART_IMAGE) as heart_file:
+                heart_image = heart_file.convert("RGBA")
+            heart_bbox = heart_image.getchannel("A").getbbox()
             if heart_bbox:
                 heart_image = heart_image.crop(heart_bbox)
             self.heart_texture = arcade.Texture(heart_image)
@@ -611,10 +611,10 @@ class GameView(arcade.View):
 
         route = [
             (panel_left + 86, panel_bottom + 42),
-            (panel_left + 60, panel_bottom + 100),
-            (panel_left + 70, panel_bottom + 162),
-            (panel_left + 46, panel_bottom + 222),
-            (panel_left + 80, panel_bottom + 274),
+            (panel_left + 60, panel_bottom + 98),
+            (panel_left + 70, panel_bottom + 154),
+            (panel_left + 46, panel_bottom + 210),
+            (panel_left + 80, panel_bottom + 266),
         ]
         labels = [
             ("Baja", route[0]),
