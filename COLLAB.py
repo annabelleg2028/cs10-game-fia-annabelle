@@ -528,22 +528,43 @@ class GameView(arcade.View):
         panel_left = SCREEN_WIDTH - 178
         panel_bottom = 118
         panel_width = 154
-        panel_height = 332
+        panel_height = 410
         draw_rounded_rectangle(panel_left, panel_bottom, panel_width, panel_height, PANEL_INK, radius=18)
-        draw_title_text("Route", panel_left + panel_width / 2, panel_bottom + panel_height - 24, TEXT_SOFT, 18, anchor_x="center")
+        draw_title_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 24, TEXT_SOFT, 18, anchor_x="center")
 
-        route_y = [panel_bottom + 48, panel_bottom + 108, panel_bottom + 170, panel_bottom + 232, panel_bottom + 286]
-        labels = ["Baja", "CA", "OR/WA", "B.C.", "Alaska"]
+        route = [
+            (panel_left + 82, panel_bottom + 54),
+            (panel_left + 58, panel_bottom + 130),
+            (panel_left + 70, panel_bottom + 205),
+            (panel_left + 48, panel_bottom + 285),
+            (panel_left + 76, panel_bottom + 356),
+        ]
+        labels = [
+            ("Baja", route[0]),
+            ("CA", route[1]),
+            ("OR/WA", route[2]),
+            ("B.C.", route[3]),
+            ("Alaska", route[4]),
+        ]
         progress = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
-        marker_index = min(len(route_y) - 1, int(progress * (len(route_y) - 1)))
-        marker_y = route_y[marker_index]
+        segment_progress = progress * (len(route) - 1)
+        segment_index = min(len(route) - 2, int(segment_progress))
+        local_progress = segment_progress - segment_index
+        start = route[segment_index]
+        end = route[segment_index + 1]
+        marker_x = start[0] + ((end[0] - start[0]) * local_progress)
+        marker_y = start[1] + ((end[1] - start[1]) * local_progress)
 
-        for idx, (label, y) in enumerate(zip(labels, route_y)):
-            arc_color = (214, 241, 255, 255) if idx <= marker_index else (162, 194, 224, 145)
-            arcade.draw_lbwh_rectangle_filled(panel_left + 19, y - 2, 18, 4, arc_color)
-            draw_game_text(label, panel_left + 48, y - 6, TEXT_SOFT, 10)
+        for start_point, end_point in zip(route, route[1:]):
+            arcade.draw_line(start_point[0], start_point[1], end_point[0], end_point[1], (224, 242, 255, 220), 4)
+            arcade.draw_line(start_point[0], start_point[1], end_point[0], end_point[1], (164, 212, 255, 120), 2)
 
-        arcade.draw_lbwh_rectangle_filled(panel_left + 17, marker_y - 4, 22, 8, (180, 226, 255, 255))
+        for label, (x, y) in labels:
+            arcade.draw_circle_filled(x, y, 5, TEXT_SOFT)
+            draw_game_text(label, panel_left + 8, y - 7, TEXT_SOFT, 10)
+
+        arcade.draw_circle_filled(marker_x, marker_y, 8, (204, 234, 255, 255))
+        arcade.draw_circle_outline(marker_x, marker_y, 10, TEXT_SOFT, 2)
         draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 16, TEXT_ACCENT, 12, anchor_x="center", bold=True)
 
     def draw_hud_hearts(self):
