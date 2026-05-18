@@ -592,9 +592,27 @@ class GameView(arcade.View):
                 alpha=alpha,
             )
 
+    def draw_energy_bar(self):
+        bar_left = 88
+        bar_bottom = 528
+        bar_width = 296
+        bar_height = 12
+        fill_width = bar_width * clamp(self.energy / ENERGY_MAX, 0.0, 1.0)
+        arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, bar_width, bar_height, (10, 55, 92, 255))
+        arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, fill_width, bar_height, (165, 222, 255, 255))
+        arcade.draw_rectangle_outline(
+            bar_left + (bar_width / 2),
+            bar_bottom + (bar_height / 2),
+            bar_width,
+            bar_height,
+            TEXT_SOFT,
+            2,
+        )
+        draw_game_text("Energy", 24, bar_bottom - 1, TEXT_SOFT, 12)
+
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
-        draw_rounded_rectangle(12, 540, 400, 48, PANEL_INK, radius=16)
+        draw_rounded_rectangle(12, 520, 400, 68, PANEL_INK, radius=16)
         draw_rounded_rectangle(SCREEN_WIDTH - 360, 540, 336, 48, PANEL_INK, radius=16)
         draw_game_text(f"Level {level}/{TOTAL_LEVELS}", 24, 556, TEXT_SOFT, 16, bold=True)
         draw_game_text(
@@ -604,6 +622,7 @@ class GameView(arcade.View):
             TEXT_SOFT,
             13,
         )
+        self.draw_energy_bar()
         draw_game_text(f"Points: {self.score}", SCREEN_WIDTH - 348, 556, TEXT_SOFT, 16, bold=True)
         self.draw_hud_hearts()
         self.draw_distance_scale()
@@ -695,7 +714,7 @@ class GameView(arcade.View):
             "You are a grey whale migrating north from the warm Baja California breeding lagoons toward cold feeding waters near Alaska.",
             "Your objective is to reach Alaska. Level 1 has trash and fishing nets, Level 2 adds fish that may hide trash, and Level 3 adds shipping boats.",
             "The first time you bump into each kind of object, the game pauses to teach you what it means. Hazard lessons are free: you learn without losing a heart.",
-            "Move with A/D or the arrow keys. Eat fish for hidden points and follow the coastal route on the right.",
+            "Move with A/D or the arrow keys. Eat fish for hidden points and energy, and follow the coastal route on the right.",
         ]
         draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 520, "Grey Whale Migration", lines, "Press SPACE to start")
 
@@ -828,6 +847,10 @@ class GameView(arcade.View):
         difficulty = self.level_ratio
         wave = 1.0 + (0.18 * math.sin(self.distance_traveled / 360.0))
         current_scroll = clamp(SCROLL_SPEED + ((difficulty ** 1.2) * 3.2) + (wave * 0.18), 2.2, 6.2)
+        energy_drain = ENERGY_DRAIN_PER_SECOND
+        if self.left_pressed or self.right_pressed:
+            energy_drain += MOVEMENT_ENERGY_DRAIN_PER_SECOND
+        self.energy = max(0, self.energy - (energy_drain * delta_time))
 
         self.distance_traveled += current_scroll
         self.next_spawn_y -= current_scroll
@@ -865,7 +888,7 @@ class GameView(arcade.View):
         self.resolve_collisions()
         self.update_level_banner()
 
-        if self.health <= 0:
+        if self.health <= 0 or self.energy <= 0:
             self.is_game_over = True
         if self.distance_traveled >= DISTANCE_TO_ALASKA:
             self.won = True
