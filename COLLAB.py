@@ -619,8 +619,10 @@ class GameView(arcade.View):
     def draw_hud_hearts(self, panel_left, panel_top):
         draw_game_text("Hearts", panel_left + 18, panel_top - 20, TEXT_SOFT, 12, bold=True)
         for i in range(HEALTH_MAX):
-            color = arcade.color.RED if i < self.health else (110, 30, 30, 255)
-            draw_heart(panel_left + 74 + (i * 34), panel_top - 48, 14, color)
+            heart_x = panel_left + 74 + (i * 34)
+            heart_y = panel_top - 48
+            alpha = 255 if i < self.health else 90
+            arcade.draw_texture_rectangle(heart_x, heart_y, 26, 26, self.heart_texture, alpha=alpha)
 
     def draw_energy_bar(self, panel_left, panel_bottom, panel_width):
         inner_left = panel_left + 18
