@@ -530,8 +530,10 @@ class GameView(arcade.View):
         panel_bottom = 92
         panel_width = 132
         panel_height = 410
-        arcade.draw_lbwh_rectangle_filled(panel_left, panel_bottom, panel_width, panel_height, (0, 35, 55, 150))
-        draw_game_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 28, arcade.color.WHITE, 13, anchor_x="center", bold=True)
+        arcade.draw_lbwh_rectangle_filled(panel_left + 5, panel_bottom - 5, panel_width, panel_height, (2, 13, 25, 82))
+        arcade.draw_lbwh_rectangle_filled(panel_left, panel_bottom, panel_width, panel_height, (4, 39, 58, 154))
+        arcade.draw_lbwh_rectangle_outline(panel_left, panel_bottom, panel_width, panel_height, (204, 241, 232, 176), 1)
+        draw_title_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 28, TEXT_SOFT, 18, anchor_x="center")
 
         route = [
             (panel_left + 82, panel_bottom + 54),
@@ -541,7 +543,8 @@ class GameView(arcade.View):
             (panel_left + 76, panel_bottom + 356),
         ]
         for start, end in zip(route, route[1:]):
-            arcade.draw_line(start[0], start[1], end[0], end[1], (200, 235, 230, 255), 4)
+            arcade.draw_line(start[0], start[1], end[0], end[1], (246, 216, 164, 225), 4)
+            arcade.draw_line(start[0], start[1], end[0], end[1], (92, 201, 202, 180), 2)
 
         labels = [
             ("Baja", route[0]),
@@ -551,8 +554,8 @@ class GameView(arcade.View):
             ("Alaska", route[4]),
         ]
         for label, (x, y) in labels:
-            arcade.draw_circle_filled(x, y, 5, arcade.color.WHITE)
-            draw_game_text(label, panel_left + 8, y - 7, (220, 245, 245, 255), 10)
+            arcade.draw_circle_filled(x, y, 5, TEXT_SOFT)
+            draw_game_text(label, panel_left + 8, y - 7, TEXT_SOFT, 10)
 
         progress = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
         segment_progress = progress * (len(route) - 1)
@@ -562,9 +565,9 @@ class GameView(arcade.View):
         end = route[segment_index + 1]
         marker_x = start[0] + ((end[0] - start[0]) * local_progress)
         marker_y = start[1] + ((end[1] - start[1]) * local_progress)
-        arcade.draw_circle_filled(marker_x, marker_y, 8, (120, 220, 160, 255))
-        arcade.draw_circle_outline(marker_x, marker_y, 10, arcade.color.WHITE, 2)
-        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 14, arcade.color.GOLD, 12, anchor_x="center", bold=True)
+        arcade.draw_circle_filled(marker_x, marker_y, 8, (242, 137, 111, 255))
+        arcade.draw_circle_outline(marker_x, marker_y, 10, TEXT_SOFT, 2)
+        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 14, TEXT_ACCENT, 12, anchor_x="center", bold=True)
 
     def draw_hud_hearts(self):
         panel_left = SCREEN_WIDTH - 360
