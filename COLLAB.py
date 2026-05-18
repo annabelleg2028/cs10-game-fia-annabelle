@@ -562,8 +562,8 @@ class GameView(arcade.View):
         panel_bottom = 118
         panel_width = 154
         panel_height = 410
-        draw_rounded_rectangle(panel_left, panel_bottom, panel_width, panel_height, PANEL_INK, radius=18)
-        draw_title_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 24, TEXT_SOFT, 18, anchor_x="center")
+        draw_outlined_rounded_rectangle(panel_left, panel_bottom, panel_width, panel_height, PANEL_INK, radius=18)
+        draw_title_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 26, TEXT_SOFT, 20, anchor_x="center")
 
         route = [
             (panel_left + 82, panel_bottom + 54),
@@ -593,40 +593,45 @@ class GameView(arcade.View):
 
         for label, (x, y) in labels:
             arcade.draw_circle_filled(x, y, 5, TEXT_SOFT)
-            draw_game_text(label, panel_left + 8, y - 7, TEXT_SOFT, 10)
+            draw_game_text(label, panel_left + 8, y - 8, TEXT_SOFT, 12)
 
         arcade.draw_circle_filled(marker_x, marker_y, 8, (204, 234, 255, 255))
         arcade.draw_circle_outline(marker_x, marker_y, 10, TEXT_SOFT, 2)
-        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 16, TEXT_ACCENT, 12, anchor_x="center", bold=True)
+        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 16, TEXT_SOFT, 14, anchor_x="center", bold=True)
 
     def draw_hud_hearts(self):
         panel_left = SCREEN_WIDTH - 360
+        panel_width = 336
         heart_gap = 28
         heart_size = 24
         hearts_width = (HEALTH_MAX - 1) * heart_gap
-        start_x = panel_left + 230 - (hearts_width / 2)
-        draw_game_text("Health", start_x - 14, SCREEN_HEIGHT - 31, TEXT_SOFT, 12, anchor_x="right")
+        heart_area_left = panel_left + 158
+        heart_area_width = panel_width - 176
+        heart_row_center_x = heart_area_left + (heart_area_width / 2)
+        heart_row_center_y = 564
+        start_x = heart_row_center_x - (hearts_width / 2)
+        draw_game_text("Health", heart_area_left - 10, heart_row_center_y - 6, TEXT_SOFT, 13, anchor_x="right")
         for i in range(HEALTH_MAX):
             alpha = 255 if i < self.health else 70
             arcade.draw_texture_rect(
                 self.heart_texture,
-                arcade.LBWH(start_x + (i * heart_gap) - heart_size / 2, SCREEN_HEIGHT - 37, heart_size, heart_size),
+                arcade.LBWH(start_x + (i * heart_gap) - heart_size / 2, heart_row_center_y - (heart_size / 2), heart_size, heart_size),
                 alpha=alpha,
             )
 
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
-        draw_rounded_rectangle(12, 540, 330, 48, PANEL_INK, radius=16)
-        draw_rounded_rectangle(SCREEN_WIDTH - 360, 540, 336, 48, PANEL_INK, radius=16)
-        draw_game_text(f"Level {level}/{TOTAL_LEVELS}", 24, 556, TEXT_SOFT, 16, bold=True)
+        draw_outlined_rounded_rectangle(12, 540, 330, 48, PANEL_INK, radius=16)
+        draw_outlined_rounded_rectangle(SCREEN_WIDTH - 360, 540, 336, 48, PANEL_INK, radius=16)
+        draw_game_text(f"Level {level}/{TOTAL_LEVELS}", 24, 555, TEXT_SOFT, 18, bold=True)
         draw_game_text(
             f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
             145,
-            556,
+            557,
             TEXT_SOFT,
-            13,
+            14,
         )
-        draw_game_text(f"Points: {self.score}", SCREEN_WIDTH - 348, 556, TEXT_SOFT, 16, bold=True)
+        draw_game_text(f"Points: {self.score}", SCREEN_WIDTH - 348, 555, TEXT_SOFT, 18, bold=True)
         self.draw_hud_hearts()
         self.draw_distance_scale()
 
@@ -635,8 +640,8 @@ class GameView(arcade.View):
 
         if self.level_banner_timer > 0:
             alpha = int(218 * clamp(self.level_banner_timer / 2.4, 0.0, 1.0))
-            draw_rounded_rectangle(190, 254, 420, 92, (22, 77, 122, alpha), radius=20)
-            banner_font_size = 24 if len(self.level_banner_text) <= 28 else 19
+            draw_outlined_rounded_rectangle(190, 254, 420, 92, (155, 216, 250, alpha), radius=20)
+            banner_font_size = 26 if len(self.level_banner_text) <= 28 else 21
             banner_lines = wrap_panel_lines([self.level_banner_text], 420, banner_font_size, side_padding=56)[:2]
             banner_y = 308 + ((len(banner_lines) - 1) * 12)
             for line in banner_lines:
