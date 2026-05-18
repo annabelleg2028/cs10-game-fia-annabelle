@@ -629,48 +629,59 @@ class GameView(arcade.View):
         arcade.draw_circle_outline(marker_x, marker_y, 10, TEXT_SOFT, 2)
         draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 16, TEXT_SOFT, 14, anchor_x="center", bold=True)
 
-    def draw_energy_bar(self):
-        panel_left = SCREEN_WIDTH - 360
-        panel_width = 336
+    def draw_hud_hearts(self, panel_left, panel_top):
+        draw_game_text("Hearts", panel_left + 18, panel_top - 20, TEXT_SOFT, 12, bold=True)
+        for i in range(HEALTH_MAX):
+            color = arcade.color.RED if i < self.health else (110, 30, 30, 255)
+            draw_heart(panel_left + 74 + (i * 34), panel_top - 48, 14, color)
+
+    def draw_energy_bar(self, panel_left, panel_bottom, panel_width):
         inner_left = panel_left + 18
-        inner_bottom = 516
+        inner_bottom = panel_bottom + 10
         inner_width = panel_width - 36
         inner_height = 18
         energy_ratio = clamp(self.energy / ENERGY_MAX, 0.0, 1.0)
-        segment_count = 5
-        segment_gap = 6
-        segment_width = (inner_width - (segment_gap * (segment_count - 1))) / segment_count
-        segment_value = ENERGY_MAX / segment_count
 
-        draw_game_text("⚡ Energy", inner_left, 540, TEXT_SOFT, 12, bold=True)
-        for segment in range(segment_count):
-            segment_left = inner_left + (segment * (segment_width + segment_gap))
-            segment_fill = clamp((self.energy - (segment * segment_value)) / segment_value, 0.0, 1.0)
-            if energy_ratio > 0.6:
-                fill_color = (103, 222, 255, 255)
-            elif energy_ratio > 0.25:
-                fill_color = (255, 190, 92, 255)
-            else:
-                fill_color = (255, 112, 112, 255)
-            draw_rounded_rectangle(segment_left, inner_bottom, segment_width, inner_height, (23, 57, 92, 190), radius=9)
-            if segment_fill > 0:
-                draw_rounded_rectangle(segment_left, inner_bottom, segment_width * segment_fill, inner_height, fill_color, radius=9)
-            draw_outlined_rounded_rectangle(segment_left, inner_bottom, segment_width, inner_height, (0, 0, 0, 0), radius=9, outline_width=2)
-        draw_game_text(f"{int(self.energy)}%", panel_left + panel_width - 18, 540, TEXT_SOFT, 12, anchor_x="right", bold=True)
+        if energy_ratio > 0.6:
+            fill_color = (103, 222, 255, 255)
+        elif energy_ratio > 0.25:
+            fill_color = (255, 190, 92, 255)
+        else:
+            fill_color = (255, 112, 112, 255)
+
+        draw_game_text("Energy", inner_left, inner_bottom + 24, TEXT_SOFT, 12, bold=True)
+        draw_rounded_rectangle(inner_left, inner_bottom, inner_width, inner_height, (23, 57, 92, 190), radius=9)
+        if energy_ratio > 0:
+            draw_rounded_rectangle(inner_left, inner_bottom, inner_width * energy_ratio, inner_height, fill_color, radius=9)
+        draw_outlined_rounded_rectangle(inner_left, inner_bottom, inner_width, inner_height, (0, 0, 0, 0), radius=9, outline_width=2)
+        draw_game_text(
+            f"{int(round(energy_ratio * 100))}%",
+            inner_left + inner_width,
+            inner_bottom + 1,
+            TEXT_SOFT,
+            12,
+            anchor_x="right",
+            bold=True,
+        )
 
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
-        draw_rounded_rectangle(12, 540, 330, 48, PANEL_INK, radius=16)
+        panel_left = 12
+        panel_bottom = 470
+        panel_width = 360
+        panel_height = 126
+        draw_outlined_rounded_rectangle(panel_left, panel_bottom, panel_width, panel_height, PANEL_INK, radius=18)
         draw_rounded_rectangle(SCREEN_WIDTH - 360, 504, 336, 84, PANEL_INK, radius=16)
-        draw_game_text(f"Level {level}/{TOTAL_LEVELS}", 24, 556, TEXT_SOFT, 16, bold=True)
+        draw_game_text(f"Level {level}/{TOTAL_LEVELS}", panel_left + 18, panel_bottom + 98, TEXT_SOFT, 16, bold=True)
         draw_game_text(
             f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
-            145,
-            557,
+            panel_left + 18,
+            panel_bottom + 76,
             TEXT_SOFT,
             14,
         )
-        self.draw_energy_bar()
+        self.draw_hud_hearts(panel_left, panel_bottom + panel_height)
+        self.draw_energy_bar(panel_left, panel_bottom, panel_width)
         self.draw_distance_scale()
 
         for msg in self.messages:
@@ -758,9 +769,10 @@ class GameView(arcade.View):
     def draw_intro(self):
         lines = [
             "You are a grey whale migrating north from the warm Baja California breeding lagoons toward cold feeding waters near Alaska.",
-            "Your objective is to reach Alaska. Level 1 is all fish, Level 2 adds trash and nets, and Level 3 introduces moving ships.",
+            "Your objective is to reach Alaska. You have 5 hearts for collisions and a separate energy bar that drains over time.",
+            "Level 1 is all fish, Level 2 adds trash and nets, and Level 3 introduces moving ships.",
             "Fish start out extremely plentiful and then decrease by the same amount each level, so the early migration feels safe and generous.",
-            "The first time you bump into each kind of object, the game pauses to teach you what it means. Hazard lessons are free: you learn without losing energy.",
+            "The first time you bump into each kind of object, the game pauses to teach you what it means. Hazard lessons are free: you learn without losing hearts or energy.",
             "Move with A/D or the arrow keys. Eat fish to recharge energy and follow the coastal route on the right.",
         ]
         draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 520, "Grey Whale Migration", lines, "Press SPACE to start")
@@ -806,17 +818,17 @@ class GameView(arcade.View):
                 if lesson_key not in self.seen_lessons:
                     hits[0].remove_from_sprite_lists()
                     self.last_hit_time = curr_time
-                    if self.start_lesson(lesson_key):
-                        return
+                if self.start_lesson(lesson_key):
+                    return
 
-                damage = max(hit.damage for hit in hits)
-                self.energy -= damage
+                damage = 1
+                self.health = max(0, self.health - damage)
                 self.last_hit_time = curr_time
                 self.add_message(
-                    f"⚡-{damage}",
+                    f"-{damage} HEART",
                     self.player_sprite.center_x,
                     self.player_sprite.top + 20,
-                    (176, 214, 255, 255),
+                    (255, 122, 132, 255),
                 )
                 self.start_lesson(lesson_key)
                 if self.game_state == "lesson":
