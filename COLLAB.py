@@ -339,18 +339,9 @@ class GameView(arcade.View):
     def level_ratio(self):
         return (self.current_level - 1) / (TOTAL_LEVELS - 1)
 
-    def choose_hazard_kind(self):
-        if self.current_level == 1:
-            return "trash" if random.random() < 0.35 else "net"
-        if self.current_level == 2:
-            return "trash" if random.random() < 0.30 else "net"
-
-        roll = random.random()
-        if roll < 0.32:
-            return "net"
-        if roll < 0.78:
-            return "trash"
-        return "boat"
+    def fish_density(self):
+        level_index = self.current_level - 1
+        return clamp(1.0 - (level_index / max(1, TOTAL_LEVELS - 1)), 0.0, 1.0)
 
     def start_migration(self):
         self.hazard_list = arcade.SpriteList()
@@ -391,7 +382,9 @@ class GameView(arcade.View):
             hazard.kind = "net"
             hazard.damage = NET_DAMAGE
         else:
-            return self.spawn_hazard(col, self.choose_hazard_kind())
+            hazard = arcade.Sprite(NET_IMAGE, scale=NET_SCALE)
+            hazard.kind = "net"
+            hazard.damage = NET_DAMAGE
 
         hazard.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
         hazard.center_y = self.next_spawn_y + (ROW_HEIGHT / 2)
@@ -404,7 +397,7 @@ class GameView(arcade.View):
         token = arcade.Sprite(texture_path, scale=FISH_SCALE * (1.15 if is_school else 1.0))
         token.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
         token.center_y = self.next_spawn_y + (ROW_HEIGHT / 2)
-        hidden_trash_chance = clamp(0.10 + (self.level_ratio * 0.20), 0.10, 0.30)
+        hidden_trash_chance = 0.0 if self.current_level <= 2 else clamp(0.08 + (self.level_ratio * 0.12), 0.08, 0.20)
         token.value = random.choice([-10, -5]) if random.random() < hidden_trash_chance else random.choice([5, 10, 15, 20])
         token.kind = "fish"
         token.is_trash = token.value < 0
@@ -412,85 +405,88 @@ class GameView(arcade.View):
         return token
 
     def fish_spawn_chance(self):
-        difficulty = self.level_ratio
-        base_chance = clamp(0.24 - (difficulty * 0.14), 0.08, 0.24)
+        level_index = self.current_level - 1
+        base_chance = clamp(0.94 - (level_index * 0.06), 0.40, 0.94)
         if self.energy <= 30:
             base_chance += 0.06
-        return clamp(base_chance, 0.08, 0.28)
+        return clamp(base_chance, 0.40, 0.98)
 
     def fish_school_chance(self):
-        difficulty = self.level_ratio
-        base_chance = clamp(0.10 - (difficulty * 0.06), 0.03, 0.10)
+        level_index = self.current_level - 1
+        base_chance = clamp(0.18 - (level_index * 0.01), 0.06, 0.18)
         if self.energy <= 30:
             base_chance += 0.03
-        return clamp(base_chance, 0.03, 0.12)
+        return clamp(base_chance, 0.06, 0.22)
 
     def spawn_row(self):
         all_cols = list(range(GRID_COLUMNS))
         occupied_cols = []
+        hazard_cols = []
         distance_ratio = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
         difficulty = self.level_ratio
+        banned_cols = set()
+        for pc in self.prev_hazard_cols:
+            banned_cols.update([pc, pc - 1, pc + 1])
 
-        can_spawn_boats = self.current_level >= 4
-        if can_spawn_boats and self.rows_since_last_patrol >= 1 and random.random() < (0.06 + difficulty * 0.16):
-            h_col = random.choice(all_cols)
-            occupied_cols.append(h_col)
-            hazard = self.spawn_hazard(h_col, "boat")
-            patrol_speed = PATROL_SPEED + difficulty * 1.2
-            hazard.change_x = patrol_speed if random.random() > 0.5 else -patrol_speed
-            self.prev_hazard_cols = [h_col]
-            self.rows_since_last_patrol = 0
-        else:
-            self.rows_since_last_patrol += 1
-            banned_cols = set()
-            for pc in self.prev_hazard_cols:
-                banned_cols.update([pc, pc - 1, pc + 1])
+        safe_choices = [c for c in all_cols if c not in banned_cols]
+        if not safe_choices:
+            safe_choices = [c for c in all_cols if c not in self.prev_hazard_cols]
+        if not safe_choices:
+            safe_choices = all_cols
 
-            safe_choices = [c for c in all_cols if c not in banned_cols]
-            if not safe_choices:
-                safe_choices = [c for c in all_cols if c not in self.prev_hazard_cols]
-            if not safe_choices:
-                safe_choices = all_cols
-
+        hazard_total = 0
+        hazard_kind_pool = []
+        if self.current_level == 2:
+            hazard_total = 1 + (1 if random.random() < 0.30 else 0)
+            hazard_kind_pool = ["trash", "net"]
+        elif self.current_level == 3:
+            hazard_total = 1 + (1 if random.random() < 0.22 else 0)
+            hazard_kind_pool = ["boat"]
+        elif self.current_level >= 4:
             hazard_total = 1
-            if self.current_level >= 3 and random.random() < (0.16 + difficulty * 0.18):
+            if self.current_level >= 5 and random.random() < (0.16 + difficulty * 0.14):
                 hazard_total += 1
-            if self.current_level >= 5 and random.random() < (0.09 + difficulty * 0.14):
+            if self.current_level >= 7 and random.random() < (0.08 + difficulty * 0.10):
                 hazard_total += 1
-            if self.current_level >= 8 and random.random() < (0.05 + difficulty * 0.10):
+            if self.current_level >= 9 and random.random() < (0.05 + difficulty * 0.08):
                 hazard_total += 1
-            if self.current_level >= 10 and random.random() < (0.04 + difficulty * 0.08):
-                hazard_total += 1
+            hazard_kind_pool = ["trash", "net", "boat"]
 
-            for _ in range(min(hazard_total, len(safe_choices))):
-                h_col = random.choice(safe_choices)
-                occupied_cols.append(h_col)
-                safe_choices.remove(h_col)
-                self.spawn_hazard(h_col)
+        for _ in range(min(hazard_total, len(safe_choices))):
+            h_col = random.choice(safe_choices)
+            occupied_cols.append(h_col)
+            hazard_cols.append(h_col)
+            safe_choices.remove(h_col)
+            hazard_kind = random.choice(hazard_kind_pool) if hazard_kind_pool else None
+            hazard = self.spawn_hazard(h_col, hazard_kind)
+            if hazard.kind == "boat":
+                patrol_speed = PATROL_SPEED + (difficulty * 1.2)
+                hazard.change_x = patrol_speed if random.random() > 0.5 else -patrol_speed
 
-            self.prev_hazard_cols = occupied_cols
+        self.prev_hazard_cols = hazard_cols
+        self.rows_since_last_patrol = 0 if hazard_total else self.rows_since_last_patrol + 1
 
-            remaining_cols = [c for c in all_cols if c not in occupied_cols]
-            fish_chance = self.fish_spawn_chance()
-            if remaining_cols and random.random() < fish_chance:
-                token_col = random.choice(remaining_cols)
+        remaining_cols = [c for c in all_cols if c not in occupied_cols]
+        fish_chance = self.fish_spawn_chance()
+        for token_col in list(remaining_cols):
+            if random.random() < fish_chance:
                 occupied_cols.append(token_col)
-                remaining_cols.remove(token_col)
                 self.spawn_token(token_col)
 
-            school_chance = self.fish_school_chance()
-            if remaining_cols and random.random() < school_chance and distance_ratio > 0.15:
-                lane = random.choice(remaining_cols)
-                neighbor_lanes = [lane]
-                if lane > 0:
-                    neighbor_lanes.append(lane - 1)
-                if lane < GRID_COLUMNS - 1:
-                    neighbor_lanes.append(lane + 1)
-                for token_lane in neighbor_lanes[:2]:
-                    if token_lane in remaining_cols:
-                        occupied_cols.append(token_lane)
-                        remaining_cols.remove(token_lane)
-                        self.spawn_token(token_lane, is_school=True)
+        school_chance = self.fish_school_chance()
+        remaining_cols = [c for c in all_cols if c not in occupied_cols]
+        if remaining_cols and random.random() < school_chance and distance_ratio > 0.15:
+            lane = random.choice(remaining_cols)
+            neighbor_lanes = [lane]
+            if lane > 0:
+                neighbor_lanes.append(lane - 1)
+            if lane < GRID_COLUMNS - 1:
+                neighbor_lanes.append(lane + 1)
+            for token_lane in neighbor_lanes[:2]:
+                if token_lane in remaining_cols:
+                    occupied_cols.append(token_lane)
+                    remaining_cols.remove(token_lane)
+                    self.spawn_token(token_lane, is_school=True)
 
         self.next_spawn_y += self.row_height
 
@@ -605,13 +601,13 @@ class GameView(arcade.View):
         panel_left = SCREEN_WIDTH - 360
         panel_width = 336
         inner_left = panel_left + 18
-        inner_bottom = 553
+        inner_bottom = 516
         inner_width = panel_width - 36
         inner_height = 18
         energy_ratio = clamp(self.energy / ENERGY_MAX, 0.0, 1.0)
         fill_width = max(0, inner_width * energy_ratio)
 
-        draw_game_text("⚡ Energy", inner_left, SCREEN_HEIGHT - 31, TEXT_SOFT, 12, bold=True)
+        draw_game_text("⚡ Energy", inner_left, 540, TEXT_SOFT, 12, bold=True)
         draw_rounded_rectangle(inner_left, inner_bottom, inner_width, inner_height, (23, 57, 92, 190), radius=9)
         if fill_width > 0:
             fill_color = (103, 222, 255, 255)
@@ -621,12 +617,12 @@ class GameView(arcade.View):
                 fill_color = (255, 112, 112, 255)
             draw_rounded_rectangle(inner_left, inner_bottom, fill_width, inner_height, fill_color, radius=9)
         draw_outlined_rounded_rectangle(inner_left, inner_bottom, inner_width, inner_height, (0, 0, 0, 0), radius=9, outline_width=2)
-        draw_game_text(f"{int(self.energy)}%", panel_left + panel_width - 18, SCREEN_HEIGHT - 31, TEXT_SOFT, 12, anchor_x="right", bold=True)
+        draw_game_text(f"{int(self.energy)}%", panel_left + panel_width - 18, 540, TEXT_SOFT, 12, anchor_x="right", bold=True)
 
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
         draw_rounded_rectangle(12, 540, 330, 48, PANEL_INK, radius=16)
-        draw_rounded_rectangle(SCREEN_WIDTH - 360, 540, 336, 48, PANEL_INK, radius=16)
+        draw_rounded_rectangle(SCREEN_WIDTH - 360, 504, 336, 84, PANEL_INK, radius=16)
         draw_game_text(f"Level {level}/{TOTAL_LEVELS}", 24, 556, TEXT_SOFT, 16, bold=True)
         draw_game_text(
             f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
@@ -635,7 +631,6 @@ class GameView(arcade.View):
             TEXT_SOFT,
             14,
         )
-        draw_game_text("Energy", SCREEN_WIDTH - 348, 556, TEXT_SOFT, 16, bold=True)
         self.draw_energy_bar()
         self.draw_distance_scale()
 
@@ -724,7 +719,8 @@ class GameView(arcade.View):
     def draw_intro(self):
         lines = [
             "You are a grey whale migrating north from the warm Baja California breeding lagoons toward cold feeding waters near Alaska.",
-            "Your objective is to reach Alaska. Level 1 starts with the most fish, and later levels make food scarcer while adding more boats and nets.",
+            "Your objective is to reach Alaska. Level 1 is all fish, Level 2 adds trash and nets, and Level 3 introduces moving ships.",
+            "Fish start out extremely plentiful and then decrease by the same amount each level, so the early migration feels safe and generous.",
             "The first time you bump into each kind of object, the game pauses to teach you what it means. Hazard lessons are free: you learn without losing energy.",
             "Move with A/D or the arrow keys. Eat fish to recharge energy and follow the coastal route on the right.",
         ]
@@ -820,9 +816,9 @@ class GameView(arcade.View):
         if self.current_level > self.last_level:
             self.last_level = self.current_level
             if self.current_level == 2:
-                self.level_banner_text = "Level 2: Fish start to thin out"
+                self.level_banner_text = "Level 2: Trash and nets enter the route"
             elif self.current_level == 3:
-                self.level_banner_text = "Level 3: Shipping boats enter the route"
+                self.level_banner_text = "Level 3: Moving ships enter the route"
             else:
                 self.level_banner_text = f"Level {self.current_level}"
             self.level_banner_timer = 2.4
