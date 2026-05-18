@@ -140,18 +140,27 @@ def draw_game_text(*args, **kwargs):
     arcade.draw_text(*args, **kwargs)
 
 
+def draw_title_text(*args, **kwargs):
+    kwargs.setdefault("font_name", TITLE_FONT)
+    arcade.draw_text(*args, **kwargs)
+
+
 def draw_panel(center_x, center_y, width, height, title, lines, footer):
     left = center_x - width / 2
     bottom = center_y - height / 2
-    arcade.draw_lbwh_rectangle_filled(left, bottom, width, height, (5, 28, 45, 232))
-    arcade.draw_lbwh_rectangle_outline(left, bottom, width, height, (170, 230, 240, 255), 2)
+    arcade.draw_lbwh_rectangle_filled(left + 9, bottom - 9, width, height, (2, 13, 25, 105))
+    arcade.draw_lbwh_rectangle_filled(left, bottom, width, height, PANEL_INK)
+    arcade.draw_lbwh_rectangle_filled(left, bottom + height - 7, width, 7, PANEL_GLOW)
+    arcade.draw_lbwh_rectangle_filled(left + 20, bottom + height - 15, width - 40, 1, (255, 231, 188, 115))
+    arcade.draw_lbwh_rectangle_outline(left, bottom, width, height, PANEL_EDGE, 2)
+    arcade.draw_lbwh_rectangle_outline(left + 8, bottom + 8, width - 16, height - 16, (92, 184, 190, 86), 1)
 
-    title_font_size = 28 if len(title) <= 24 else 24
+    title_font_size = 34 if len(title) <= 24 else 28
     title_lines = wrap_panel_lines([title], width, title_font_size, side_padding=86)[:2]
-    title_y = bottom + height - 38
+    title_y = bottom + height - 45
     for line in title_lines:
-        draw_game_text(line, center_x, title_y, arcade.color.WHITE, title_font_size, anchor_x="center", bold=True)
-        title_y -= title_font_size + 5
+        draw_title_text(line, center_x, title_y, TEXT_SOFT, title_font_size, anchor_x="center")
+        title_y -= title_font_size + 2
 
     footer_font_size = 15
     footer_lines = wrap_panel_lines([footer], width, footer_font_size, side_padding=86)
@@ -161,7 +170,7 @@ def draw_panel(center_x, center_y, width, height, title, lines, footer):
     footer_lines = footer_lines[:2]
     footer_y = bottom + 34 + ((len(footer_lines) - 1) * (footer_font_size - 5))
     for line in footer_lines:
-        draw_game_text(line, center_x, footer_y, arcade.color.GOLD, footer_font_size, anchor_x="center", bold=True)
+        draw_game_text(line, center_x, footer_y, TEXT_ACCENT, footer_font_size, anchor_x="center", bold=True)
         footer_y -= footer_font_size + 5
 
     text_y = min(title_y - 20, bottom + height - 92)
@@ -180,7 +189,7 @@ def draw_panel(center_x, center_y, width, height, title, lines, footer):
         if text_y < footer_top:
             break
         if line:
-            draw_game_text(line, left + 34, text_y, (225, 245, 245, 255), body_font_size)
+            draw_game_text(line, left + 38, text_y, TEXT_SOFT, body_font_size)
         text_y -= line_spacing
 
 
