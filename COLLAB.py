@@ -674,7 +674,7 @@ class GameView(arcade.View):
             "The first time you bump into each kind of object, the game pauses to teach you what it means. Hazard lessons are free: you learn without losing a heart.",
             "Move with A/D or the arrow keys. Eat fish for hidden points and follow the coastal route on the right.",
         ]
-        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 640, 430, "Grey Whale Migration", lines, "Press SPACE to start")
+        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 520, "Grey Whale Migration", lines, "Press SPACE to start")
 
     def draw_lesson(self):
         if not self.current_lesson:
@@ -683,8 +683,7 @@ class GameView(arcade.View):
         draw_panel(
             SCREEN_WIDTH / 2,
             SCREEN_HEIGHT / 2,
-            590,
-            310,
+            420,
             title,
             [self.current_lesson["body"]],
             "Press SPACE to continue",
@@ -699,12 +698,12 @@ class GameView(arcade.View):
                 "Reporting entangled or injured marine mammals to local rescue groups also helps experts respond safely.",
             ]
         else:
-            title = "Migration Stopped"
+            title = "You Did Not Make It"
             lines = [
-                "During migration, whales face many human-made threats. Pollution, fishing gear, and ships can turn a long natural journey into a dangerous one.",
-                "People can help by keeping trash out of waterways, recycling fishing line, supporting cleaner harbors, and giving whales space from boats.",
+                "The migration ended early. During the journey, pollution, fishing gear, and boats can turn a natural route into a dangerous one.",
+                "Try again and keep an eye on the hazards. People can help by keeping trash out of waterways, recycling fishing line, supporting cleaner harbors, and giving whales space from boats.",
             ]
-        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 650, 405, title, lines, "Press R to restart")
+        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 560, title, lines, "Press R to restart")
 
     def resolve_collisions(self):
         curr_time = time.time()
@@ -778,7 +777,6 @@ class GameView(arcade.View):
     def on_draw(self):
         self.clear()
         self.draw_ocean_background()
-        self.draw_grid_lines()
 
         for hazard in self.hazard_list:
             self.draw_hazard(hazard)
