@@ -41,7 +41,7 @@ PLAYER_START_Y = 120
 
 TOTAL_LEVELS = 10
 ENERGY_MAX = 100
-ENERGY_DRAIN_PER_SECOND = 10.0
+ENERGY_DRAIN_PER_SECOND = 6.0
 TRASH_DAMAGE = 10
 NET_DAMAGE = 12
 BOAT_DAMAGE = 18
@@ -394,11 +394,11 @@ class GameView(arcade.View):
 
     def spawn_token(self, col, is_school=False):
         texture_path = random.choice(FISH_IMAGES)
-        token = arcade.Sprite(texture_path, scale=FISH_SCALE * (1.15 if is_school else 1.0))
+        token = arcade.Sprite(texture_path, scale=FISH_SCALE * (1.25 if is_school else 1.0))
         token.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
         token.center_y = self.next_spawn_y + (ROW_HEIGHT / 2)
         hidden_trash_chance = 0.0 if self.current_level <= 2 else clamp(0.08 + (self.level_ratio * 0.12), 0.08, 0.20)
-        token.value = random.choice([-10, -5]) if random.random() < hidden_trash_chance else random.choice([5, 10, 15, 20])
+        token.value = random.choice([-12, -8]) if random.random() < hidden_trash_chance else random.choice([8, 12, 16, 24])
         token.kind = "fish"
         token.is_trash = token.value < 0
         self.token_list.append(token)
