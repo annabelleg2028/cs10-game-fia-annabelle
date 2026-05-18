@@ -53,15 +53,15 @@ ROW_HEIGHT = 80
 PLAYER_HITBOX_WIDTH = 44
 PLAYER_HITBOX_HEIGHT = 62
 WHALE_FORWARD_ANGLE = 0
-GAME_FONT = ("Avenir Next", "Helvetica Neue", "Arial")
-TITLE_FONT = ("Avenir Next Condensed", "Avenir Next", "Helvetica Neue", "Arial")
-BODY_FONT_SIZE = 13
-TITLE_FONT_SIZE = 24
-FOOTER_FONT_SIZE = 11
+GAME_FONT = ("Italiana", "Avenir Next", "Helvetica Neue", "Arial")
+TITLE_FONT = ("Italiana", "Avenir Next", "Helvetica Neue", "Arial")
+BODY_FONT_SIZE = 11
+TITLE_FONT_SIZE = 22
+FOOTER_FONT_SIZE = 10
 PANEL_PADDING_X = 26
-PANEL_INK = (94, 170, 226, 245)
+PANEL_INK = (22, 77, 122, 255)
 TEXT_SOFT = (249, 252, 255, 255)
-TEXT_ACCENT = (220, 239, 255, 255)
+TEXT_ACCENT = (176, 218, 255, 255)
 
 LEVEL_GRADIENTS = [
     ((120, 220, 218), (46, 145, 190)),
@@ -189,7 +189,7 @@ def draw_panel(center_x, center_y, max_width, title, lines, footer):
     body_height = max(1, len(body_lines)) * (body_font_size + 7)
     title_height = len(title_lines) * (title_font_size + 3)
     footer_height = len(footer_lines) * (footer_font_size + 3)
-    panel_height = min(390, max(120, title_height + body_height + footer_height + 46))
+    panel_height = min(420, max(140, title_height + body_height + footer_height + 56))
 
     left = center_x - panel_width / 2
     bottom = center_y - panel_height / 2
@@ -211,7 +211,7 @@ def draw_panel(center_x, center_y, max_width, title, lines, footer):
         if text_y < bottom + 42:
             break
         if line:
-            draw_game_text(line, left + 38, text_y, TEXT_SOFT, body_font_size)
+            draw_game_text(line, left + 32, text_y, TEXT_ACCENT, body_font_size)
         text_y -= line_spacing
 
 
@@ -557,7 +557,6 @@ class GameView(arcade.View):
 
         for start_point, end_point in zip(route, route[1:]):
             arcade.draw_line(start_point[0], start_point[1], end_point[0], end_point[1], (224, 242, 255, 220), 4)
-            arcade.draw_line(start_point[0], start_point[1], end_point[0], end_point[1], (164, 212, 255, 120), 2)
 
         for label, (x, y) in labels:
             arcade.draw_circle_filled(x, y, 5, TEXT_SOFT)
@@ -603,7 +602,7 @@ class GameView(arcade.View):
 
         if self.level_banner_timer > 0:
             alpha = int(218 * clamp(self.level_banner_timer / 2.4, 0.0, 1.0))
-            draw_rounded_rectangle(190, 254, 420, 92, (94, 170, 226, alpha), radius=20)
+            draw_rounded_rectangle(190, 254, 420, 92, (22, 77, 122, alpha), radius=20)
             banner_font_size = 24 if len(self.level_banner_text) <= 28 else 19
             banner_lines = wrap_panel_lines([self.level_banner_text], 420, banner_font_size, side_padding=56)[:2]
             banner_y = 308 + ((len(banner_lines) - 1) * 12)
