@@ -14,7 +14,6 @@ SCREEN_TITLE = "Grey Whale Migration"
 ASSET_DIR = Path(__file__).parent
 OCEAN_IMAGE = ASSET_DIR / "ocean.png"
 WHALE_IMAGE = ASSET_DIR / "whale.png"
-HEART_IMAGE = ASSET_DIR / "heart.png"
 NET_IMAGE = ASSET_DIR / "fishingnet.png"
 BOAT_IMAGE = ASSET_DIR / "fishingboat.png"
 FISH_IMAGES = [
@@ -41,7 +40,11 @@ BOAT_SCALE = 0.125
 PLAYER_START_Y = 120
 
 TOTAL_LEVELS = 10
-HEALTH_MAX = 6
+ENERGY_MAX = 100
+ENERGY_DRAIN_PER_SECOND = 10.0
+TRASH_DAMAGE = 10
+NET_DAMAGE = 12
+BOAT_DAMAGE = 18
 DISTANCE_PER_LEVEL = 5200
 DISTANCE_TO_ALASKA = DISTANCE_PER_LEVEL * TOTAL_LEVELS
 LEVEL_TRANSITION_DISTANCE = 520
@@ -248,17 +251,6 @@ def draw_panel(center_x, center_y, max_width, title, lines, footer):
         text_y -= line_spacing
 
 
-def draw_heart(center_x, center_y, size, color):
-    points = []
-    scale = size / 18
-    for degree in range(0, 360, 12):
-        angle = math.radians(degree)
-        x = 16 * (math.sin(angle) ** 3)
-        y = 13 * math.cos(angle) - 5 * math.cos(2 * angle) - 2 * math.cos(3 * angle) - math.cos(4 * angle)
-        points.append((center_x + x * scale, center_y + (y - 2) * scale))
-    arcade.draw_polygon_filled(points, color)
-
-
 def draw_trash(center_x, center_y, scale=1.0):
     radius = 13 * scale
     arcade.draw_circle_filled(center_x, center_y, radius, (116, 169, 232, 255))
@@ -270,7 +262,6 @@ class GameView(arcade.View):
         self.background_color = (7, 30, 58)
         self.ocean = arcade.load_texture(OCEAN_IMAGE)
         self.whale_texture = arcade.load_texture(WHALE_IMAGE)
-        self.heart_texture = arcade.load_texture(HEART_IMAGE)
         self.net_texture = arcade.load_texture(NET_IMAGE)
         self.boat_texture = arcade.load_texture(BOAT_IMAGE)
         self.fish_textures = [arcade.load_texture(path) for path in FISH_IMAGES]
@@ -283,8 +274,7 @@ class GameView(arcade.View):
         self.left_pressed = False
         self.right_pressed = False
 
-        self.health = HEALTH_MAX
-        self.score = 0
+        self.energy = ENERGY_MAX
         self.is_game_over = False
         self.won = False
         self.last_hit_time = 0
@@ -316,8 +306,7 @@ class GameView(arcade.View):
 
         self.left_pressed = False
         self.right_pressed = False
-        self.health = HEALTH_MAX
-        self.score = 0
+        self.energy = ENERGY_MAX
         self.is_game_over = False
         self.won = False
         self.last_hit_time = 0
@@ -366,8 +355,7 @@ class GameView(arcade.View):
     def start_migration(self):
         self.hazard_list = arcade.SpriteList()
         self.token_list = arcade.SpriteList()
-        self.health = HEALTH_MAX
-        self.score = 0
+        self.energy = ENERGY_MAX
         self.is_game_over = False
         self.won = False
         self.messages = []
@@ -393,15 +381,15 @@ class GameView(arcade.View):
         if hazard_kind == "boat":
             hazard = arcade.Sprite(BOAT_IMAGE, scale=BOAT_SCALE)
             hazard.kind = "boat"
-            hazard.damage = 1
+            hazard.damage = BOAT_DAMAGE
         elif hazard_kind == "trash":
             hazard = arcade.SpriteSolidColor(34, 34, (116, 169, 232, 255))
             hazard.kind = "trash"
-            hazard.damage = 1
+            hazard.damage = TRASH_DAMAGE
         elif hazard_kind == "net":
             hazard = arcade.Sprite(NET_IMAGE, scale=NET_SCALE)
             hazard.kind = "net"
-            hazard.damage = 1
+            hazard.damage = NET_DAMAGE
         else:
             return self.spawn_hazard(col, self.choose_hazard_kind())
 
@@ -422,6 +410,20 @@ class GameView(arcade.View):
         token.is_trash = token.value < 0
         self.token_list.append(token)
         return token
+
+    def fish_spawn_chance(self):
+        difficulty = self.level_ratio
+        base_chance = clamp(0.24 - (difficulty * 0.14), 0.08, 0.24)
+        if self.energy <= 30:
+            base_chance += 0.06
+        return clamp(base_chance, 0.08, 0.28)
+
+    def fish_school_chance(self):
+        difficulty = self.level_ratio
+        base_chance = clamp(0.10 - (difficulty * 0.06), 0.03, 0.10)
+        if self.energy <= 30:
+            base_chance += 0.03
+        return clamp(base_chance, 0.03, 0.12)
 
     def spawn_row(self):
         all_cols = list(range(GRID_COLUMNS))
@@ -469,14 +471,14 @@ class GameView(arcade.View):
             self.prev_hazard_cols = occupied_cols
 
             remaining_cols = [c for c in all_cols if c not in occupied_cols]
-            fish_chance = clamp(0.68 - difficulty * 0.18 + (0.18 if self.health <= 2 else 0.0), 0.22, 0.82)
+            fish_chance = self.fish_spawn_chance()
             if self.current_level >= 2 and remaining_cols and random.random() < fish_chance:
                 token_col = random.choice(remaining_cols)
                 occupied_cols.append(token_col)
                 remaining_cols.remove(token_col)
                 self.spawn_token(token_col)
 
-            school_chance = clamp(0.40 - difficulty * 0.12, 0.16, 0.42)
+            school_chance = self.fish_school_chance()
             if self.current_level >= 2 and remaining_cols and random.random() < school_chance and distance_ratio > 0.15:
                 lane = random.choice(remaining_cols)
                 neighbor_lanes = [lane]
@@ -599,21 +601,27 @@ class GameView(arcade.View):
         arcade.draw_circle_outline(marker_x, marker_y, 10, TEXT_SOFT, 2)
         draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 16, TEXT_SOFT, 14, anchor_x="center", bold=True)
 
-    def draw_hud_hearts(self):
+    def draw_energy_bar(self):
         panel_left = SCREEN_WIDTH - 360
         panel_width = 336
-        heart_gap = 28
-        heart_size = 24
-        hearts_width = (HEALTH_MAX - 1) * heart_gap
-        start_x = panel_left + 230 - (hearts_width / 2)
-        draw_game_text("Health", start_x - 14, SCREEN_HEIGHT - 31, TEXT_SOFT, 12, anchor_x="right")
-        for i in range(HEALTH_MAX):
-            alpha = 255 if i < self.health else 70
-            arcade.draw_texture_rect(
-                self.heart_texture,
-                arcade.LBWH(start_x + (i * heart_gap) - heart_size / 2, SCREEN_HEIGHT - 37, heart_size, heart_size),
-                alpha=alpha,
-            )
+        inner_left = panel_left + 18
+        inner_bottom = 553
+        inner_width = panel_width - 36
+        inner_height = 18
+        energy_ratio = clamp(self.energy / ENERGY_MAX, 0.0, 1.0)
+        fill_width = max(0, inner_width * energy_ratio)
+
+        draw_game_text("⚡ Energy", inner_left, SCREEN_HEIGHT - 31, TEXT_SOFT, 12, bold=True)
+        draw_rounded_rectangle(inner_left, inner_bottom, inner_width, inner_height, (23, 57, 92, 190), radius=9)
+        if fill_width > 0:
+            fill_color = (103, 222, 255, 255)
+            if energy_ratio <= 0.45:
+                fill_color = (255, 190, 92, 255)
+            if energy_ratio <= 0.2:
+                fill_color = (255, 112, 112, 255)
+            draw_rounded_rectangle(inner_left, inner_bottom, fill_width, inner_height, fill_color, radius=9)
+        draw_outlined_rounded_rectangle(inner_left, inner_bottom, inner_width, inner_height, (0, 0, 0, 0), radius=9, outline_width=2)
+        draw_game_text(f"{int(self.energy)}%", panel_left + panel_width - 18, SCREEN_HEIGHT - 31, TEXT_SOFT, 12, anchor_x="right", bold=True)
 
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
@@ -627,8 +635,8 @@ class GameView(arcade.View):
             TEXT_SOFT,
             14,
         )
-        draw_game_text(f"Points: {self.score}", SCREEN_WIDTH - 348, 556, TEXT_SOFT, 16, bold=True)
-        self.draw_hud_hearts()
+        draw_game_text("Energy", SCREEN_WIDTH - 348, 556, TEXT_SOFT, 16, bold=True)
+        self.draw_energy_bar()
         self.draw_distance_scale()
 
         for msg in self.messages:
@@ -717,8 +725,8 @@ class GameView(arcade.View):
         lines = [
             "You are a grey whale migrating north from the warm Baja California breeding lagoons toward cold feeding waters near Alaska.",
             "Your objective is to reach Alaska. Level 1 has trash and fishing nets, Level 2 adds fish that may hide trash, and Level 3 adds shipping boats.",
-            "The first time you bump into each kind of object, the game pauses to teach you what it means. Hazard lessons are free: you learn without losing a heart.",
-            "Move with A/D or the arrow keys. Eat fish for hidden points and follow the coastal route on the right.",
+            "The first time you bump into each kind of object, the game pauses to teach you what it means. Hazard lessons are free: you learn without losing energy.",
+            "Move with A/D or the arrow keys. Eat fish to recharge energy and follow the coastal route on the right.",
         ]
         draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 520, "Grey Whale Migration", lines, "Press SPACE to start")
 
@@ -767,10 +775,10 @@ class GameView(arcade.View):
                         return
 
                 damage = max(hit.damage for hit in hits)
-                self.health -= damage
+                self.energy -= damage
                 self.last_hit_time = curr_time
                 self.add_message(
-                    f"{lesson_key} -{damage}",
+                    f"⚡-{damage}",
                     self.player_sprite.center_x,
                     self.player_sprite.top + 20,
                     (176, 214, 255, 255),
@@ -787,12 +795,12 @@ class GameView(arcade.View):
                 if self.start_lesson(lesson_key):
                     return
 
-            self.score += fish.value
+            self.energy = min(ENERGY_MAX, self.energy + fish.value)
             if fish.value > 0:
                 self.distance_traveled = min(DISTANCE_TO_ALASKA, self.distance_traveled + 10)
-                self.add_message(f"+{fish.value}", fish.center_x, fish.center_y, (207, 235, 255, 255))
+                self.add_message(f"⚡+{fish.value}", fish.center_x, fish.center_y, (207, 235, 255, 255))
             else:
-                self.add_message(f"trash {fish.value}", fish.center_x, fish.center_y, (170, 212, 255, 255))
+                self.add_message(f"⚡{fish.value}", fish.center_x, fish.center_y, (170, 212, 255, 255))
                 self.start_lesson(lesson_key)
             fish.remove_from_sprite_lists()
             if fish.value > 0:
@@ -811,9 +819,8 @@ class GameView(arcade.View):
     def update_level_banner(self):
         if self.current_level > self.last_level:
             self.last_level = self.current_level
-            self.health = HEALTH_MAX
             if self.current_level == 2:
-                self.level_banner_text = "Level 2: Fish enter the route"
+                self.level_banner_text = "Level 2: Fish start to thin out"
             elif self.current_level == 3:
                 self.level_banner_text = "Level 3: Shipping boats enter the route"
             else:
@@ -849,6 +856,7 @@ class GameView(arcade.View):
         wave = 1.0 + (0.18 * math.sin(self.distance_traveled / 360.0))
         current_scroll = clamp(SCROLL_SPEED + ((difficulty ** 1.2) * 3.2) + (wave * 0.18), 2.2, 6.2)
 
+        self.energy = max(0.0, self.energy - (ENERGY_DRAIN_PER_SECOND * delta_time))
         self.distance_traveled += current_scroll
         self.next_spawn_y -= current_scroll
         self.background_offset = (self.background_offset - current_scroll * 0.65) % OCEAN_TILE_HEIGHT
@@ -885,7 +893,7 @@ class GameView(arcade.View):
         self.resolve_collisions()
         self.update_level_banner()
 
-        if self.health <= 0:
+        if self.energy <= 0:
             self.is_game_over = True
         if self.distance_traveled >= DISTANCE_TO_ALASKA:
             self.won = True
