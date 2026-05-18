@@ -5,6 +5,10 @@ import time
 from pathlib import Path
 
 import arcade
+try:
+    from PIL import Image
+except ImportError:  # pragma: no cover - fallback when Pillow is unavailable
+    Image = None
 
 
 SCREEN_WIDTH = 800
@@ -69,6 +73,21 @@ PANEL_OUTLINE = (8, 45, 94, 255)
 TEXT_SOFT = (219, 241, 255, 255)
 TEXT_ACCENT = (178, 224, 255, 255)
 TEXT_OUTLINE = (5, 34, 78, 255)
+STATUS_BOX_MARGIN = 12
+STATUS_BOX_WIDTH = 238
+STATUS_BOX_HEIGHT = 138
+STATUS_BOX_RIGHT = SCREEN_WIDTH - STATUS_BOX_MARGIN
+STATUS_BOX_BOTTOM = SCREEN_HEIGHT - STATUS_BOX_MARGIN - STATUS_BOX_HEIGHT
+MIGRATION_PANEL_WIDTH = 170
+MIGRATION_PANEL_HEIGHT = 308
+MIGRATION_PANEL_BOTTOM = 118
+MIGRATION_PANEL_GAP = 16
+HEART_ROW_GAP = 8
+HEART_DISPLAY_HEIGHT = 24
+ENERGY_BAR_HEIGHT = 16
+ENERGY_BAR_INSET = 20
+ENERGY_BAR_COLOR = (8, 45, 94, 255)
+ENERGY_BAR_BG = (255, 255, 255, 245)
 
 LEVEL_GRADIENTS = [
     ((120, 220, 218), (46, 145, 190)),
@@ -266,7 +285,15 @@ class GameView(arcade.View):
         self.whale_texture = arcade.load_texture(WHALE_IMAGE)
         self.net_texture = arcade.load_texture(NET_IMAGE)
         self.boat_texture = arcade.load_texture(BOAT_IMAGE)
-        self.heart_texture = arcade.load_texture(HEART_IMAGE)
+        if Image is not None:
+            heart_image = Image.open(HEART_IMAGE).convert("RGBA")
+            alpha = heart_image.getchannel("A")
+            heart_bbox = alpha.getbbox()
+            if heart_bbox:
+                heart_image = heart_image.crop(heart_bbox)
+            self.heart_texture = arcade.Texture(heart_image)
+        else:
+            self.heart_texture = arcade.load_texture(HEART_IMAGE)
         self.fish_textures = [arcade.load_texture(path) for path in FISH_IMAGES]
         self.player_sprite = None
 
@@ -575,19 +602,19 @@ class GameView(arcade.View):
         return blend_color(previous_color, current_color, mix)
 
     def draw_distance_scale(self):
-        panel_left = SCREEN_WIDTH - 178
-        panel_bottom = 118
-        panel_width = 154
-        panel_height = 410
+        panel_left = SCREEN_WIDTH - STATUS_BOX_MARGIN - MIGRATION_PANEL_WIDTH
+        panel_bottom = MIGRATION_PANEL_BOTTOM
+        panel_width = MIGRATION_PANEL_WIDTH
+        panel_height = MIGRATION_PANEL_HEIGHT
         draw_outlined_rounded_rectangle(panel_left, panel_bottom, panel_width, panel_height, PANEL_INK, radius=18)
-        draw_title_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 26, TEXT_SOFT, 20, anchor_x="center")
+        draw_title_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 24, TEXT_SOFT, 18, anchor_x="center")
 
         route = [
-            (panel_left + 82, panel_bottom + 54),
-            (panel_left + 58, panel_bottom + 130),
-            (panel_left + 70, panel_bottom + 205),
-            (panel_left + 48, panel_bottom + 285),
-            (panel_left + 76, panel_bottom + 356),
+            (panel_left + 86, panel_bottom + 42),
+            (panel_left + 60, panel_bottom + 100),
+            (panel_left + 70, panel_bottom + 162),
+            (panel_left + 46, panel_bottom + 222),
+            (panel_left + 80, panel_bottom + 274),
         ]
         labels = [
             ("Baja", route[0]),
@@ -614,48 +641,31 @@ class GameView(arcade.View):
 
         arcade.draw_circle_filled(marker_x, marker_y, 8, (204, 234, 255, 255))
         arcade.draw_circle_outline(marker_x, marker_y, 10, TEXT_SOFT, 2)
-        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 16, TEXT_SOFT, 14, anchor_x="center", bold=True)
+        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 14, TEXT_SOFT, 13, anchor_x="center", bold=True)
 
-    def draw_hud_hearts(self, panel_left, panel_top):
-        draw_game_text("Hearts", panel_left + 18, panel_top - 20, TEXT_SOFT, 12, bold=True)
+    def draw_hud_hearts(self, center_x, top_y):
+        draw_game_text("Hearts", center_x, top_y - 20, TEXT_SOFT, 12, anchor_x="center", bold=True)
+        heart_width = HEART_DISPLAY_HEIGHT * (self.heart_texture.width / self.heart_texture.height)
+        total_width = (HEALTH_MAX * heart_width) + ((HEALTH_MAX - 1) * HEART_ROW_GAP)
+        start_x = center_x - (total_width / 2) + (heart_width / 2)
+        heart_y = top_y - 48
         for i in range(HEALTH_MAX):
-            heart_x = panel_left + 74 + (i * 34)
-            heart_y = panel_top - 48
+            heart_x = start_x + (i * (heart_width + HEART_ROW_GAP))
             alpha = 255 if i < self.health else 90
             arcade.draw_texture_rect(
                 self.heart_texture,
-                arcade.LBWH(heart_x - 13, heart_y - 13, 26, 26),
+                arcade.LBWH(heart_x - (heart_width / 2), heart_y - (HEART_DISPLAY_HEIGHT / 2), heart_width, HEART_DISPLAY_HEIGHT),
                 alpha=alpha,
             )
 
-    def draw_energy_bar(self, panel_left, panel_bottom, panel_width):
-        inner_left = panel_left + 18
-        inner_bottom = panel_bottom + 10
-        inner_width = panel_width - 36
-        inner_height = 18
+    def draw_energy_bar(self, center_x, top_y, bar_width):
         energy_ratio = clamp(self.energy / ENERGY_MAX, 0.0, 1.0)
-
-        if energy_ratio > 0.6:
-            fill_color = (103, 222, 255, 255)
-        elif energy_ratio > 0.25:
-            fill_color = (255, 190, 92, 255)
-        else:
-            fill_color = (255, 112, 112, 255)
-
-        draw_game_text("Energy", inner_left, inner_bottom + 24, TEXT_SOFT, 12, bold=True)
-        draw_rounded_rectangle(inner_left, inner_bottom, inner_width, inner_height, (23, 57, 92, 190), radius=9)
+        bar_left = center_x - (bar_width / 2)
+        bar_bottom = top_y - 92
+        draw_game_text("Energy", center_x, bar_bottom + ENERGY_BAR_HEIGHT + 14, TEXT_SOFT, 12, anchor_x="center", bold=True)
+        arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, bar_width, ENERGY_BAR_HEIGHT, ENERGY_BAR_BG)
         if energy_ratio > 0:
-            draw_rounded_rectangle(inner_left, inner_bottom, inner_width * energy_ratio, inner_height, fill_color, radius=9)
-        draw_outlined_rounded_rectangle(inner_left, inner_bottom, inner_width, inner_height, (0, 0, 0, 0), radius=9, outline_width=2)
-        draw_game_text(
-            f"{int(round(energy_ratio * 100))}%",
-            inner_left + inner_width,
-            inner_bottom + 1,
-            TEXT_SOFT,
-            12,
-            anchor_x="right",
-            bold=True,
-        )
+            arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, bar_width * energy_ratio, ENERGY_BAR_HEIGHT, ENERGY_BAR_COLOR)
 
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
@@ -663,12 +673,7 @@ class GameView(arcade.View):
         status_bottom = 556
         status_width = 330
         status_height = 34
-        panel_bottom = 460
-        panel_width = 360
-        panel_height = 90
         draw_outlined_rounded_rectangle(panel_left, status_bottom, status_width, status_height, PANEL_INK, radius=14)
-        draw_outlined_rounded_rectangle(panel_left, panel_bottom, panel_width, panel_height, PANEL_INK, radius=18)
-        draw_rounded_rectangle(SCREEN_WIDTH - 360, 504, 336, 84, PANEL_INK, radius=16)
         draw_game_text(f"Level {level}/{TOTAL_LEVELS}", panel_left + 18, status_bottom + 13, TEXT_SOFT, 14, bold=True)
         draw_game_text(
             f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
@@ -677,8 +682,8 @@ class GameView(arcade.View):
             TEXT_SOFT,
             12,
         )
-        self.draw_hud_hearts(panel_left, panel_bottom + panel_height)
-        self.draw_energy_bar(panel_left, panel_bottom, panel_width)
+        status_left = SCREEN_WIDTH - STATUS_BOX_MARGIN - STATUS_BOX_WIDTH
+        self.draw_outlined_status_box(status_left, STATUS_BOX_BOTTOM, STATUS_BOX_WIDTH, STATUS_BOX_HEIGHT)
         self.draw_distance_scale()
 
         for msg in self.messages:
@@ -702,6 +707,13 @@ class GameView(arcade.View):
                     bold=True,
                 )
                 banner_y -= banner_font_size + 5
+
+    def draw_outlined_status_box(self, panel_left, panel_bottom, panel_width, panel_height):
+        draw_outlined_rounded_rectangle(panel_left, panel_bottom, panel_width, panel_height, PANEL_INK, radius=18)
+        center_x = panel_left + (panel_width / 2)
+        top_y = panel_bottom + panel_height
+        self.draw_hud_hearts(center_x, top_y - 8)
+        self.draw_energy_bar(center_x, top_y - 10, panel_width - (ENERGY_BAR_INSET * 2))
 
     def draw_hazard(self, hazard):
         if hazard.kind == "trash":
