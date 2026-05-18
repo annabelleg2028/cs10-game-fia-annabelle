@@ -630,7 +630,12 @@ class GameView(arcade.View):
         if hazard.kind == "trash":
             draw_trash(hazard.center_x, hazard.center_y, 1.0)
         else:
-            hazard.draw()
+            arcade.draw_texture_rect(
+                hazard.texture,
+                arcade.LBWH(hazard.left, hazard.bottom, hazard.width, hazard.height),
+                angle=hazard.angle,
+                alpha=hazard.alpha,
+            )
 
     def touches_visible_hazard(self, hazard):
         player_x = self.player_sprite.center_x
