@@ -53,13 +53,13 @@ ROW_HEIGHT = 80
 PLAYER_HITBOX_WIDTH = 44
 PLAYER_HITBOX_HEIGHT = 62
 WHALE_FORWARD_ANGLE = 0
-GAME_FONT = ("Avenir Next", "Gill Sans", "Georgia", "Arial")
-TITLE_FONT = ("Snell Roundhand", "Noteworthy", "Georgia", "Times New Roman")
-PANEL_INK = (7, 31, 45, 224)
-PANEL_EDGE = (201, 239, 235, 230)
-PANEL_GLOW = (245, 181, 120, 78)
-TEXT_SOFT = (235, 250, 246, 255)
-TEXT_ACCENT = (255, 204, 128, 255)
+GAME_FONT = ("Italiana", "Baskerville", "Georgia", "Times New Roman")
+TITLE_FONT = ("Italiana", "Baskerville", "Georgia", "Times New Roman")
+PANEL_INK = (6, 28, 48, 224)
+PANEL_EDGE = (214, 241, 255, 230)
+PANEL_GLOW = (126, 192, 236, 88)
+TEXT_SOFT = (244, 250, 255, 255)
+TEXT_ACCENT = (187, 224, 255, 255)
 
 LEVEL_GRADIENTS = [
     ((120, 220, 218), (46, 145, 190)),
@@ -207,14 +207,14 @@ def draw_heart(center_x, center_y, size, color):
 
 def draw_trash(center_x, center_y, scale=1.0):
     radius = 13 * scale
-    arcade.draw_circle_filled(center_x, center_y, radius, (170, 125, 70, 255))
-    arcade.draw_circle_outline(center_x, center_y, radius + 2, arcade.color.BLACK, 2)
+    arcade.draw_circle_filled(center_x, center_y, radius, (116, 169, 232, 255))
+    arcade.draw_circle_outline(center_x, center_y, radius + 2, (222, 241, 255, 210), 2)
     arcade.draw_line(
         center_x - radius * 0.5,
         center_y - radius * 0.3,
         center_x + radius * 0.45,
         center_y + radius * 0.35,
-        (80, 65, 50, 255),
+        (239, 249, 255, 255),
         2,
     )
 
@@ -222,7 +222,7 @@ def draw_trash(center_x, center_y, scale=1.0):
 class GameView(arcade.View):
     def __init__(self):
         super().__init__()
-        self.background_color = arcade.csscolor.DARK_SLATE_BLUE
+        self.background_color = (7, 30, 58)
         self.ocean = arcade.load_texture(OCEAN_IMAGE)
         self.whale_texture = arcade.load_texture(WHALE_IMAGE)
         self.heart_texture = arcade.load_texture(HEART_IMAGE)
@@ -350,7 +350,7 @@ class GameView(arcade.View):
             hazard.kind = "boat"
             hazard.damage = 2
         elif hazard_kind == "trash":
-            hazard = arcade.SpriteSolidColor(34, 34, (170, 125, 70, 255))
+            hazard = arcade.SpriteSolidColor(34, 34, (116, 169, 232, 255))
             hazard.kind = "trash"
             hazard.damage = 1
         elif hazard_kind == "net":
@@ -608,7 +608,7 @@ class GameView(arcade.View):
         if self.level_banner_timer > 0:
             alpha = int(218 * clamp(self.level_banner_timer / 2.4, 0.0, 1.0))
             arcade.draw_lbwh_rectangle_filled(190, 254, 420, 92, (7, 31, 45, alpha))
-            arcade.draw_lbwh_rectangle_filled(190, 339, 420, 4, (245, 181, 120, min(160, alpha)))
+            arcade.draw_lbwh_rectangle_filled(190, 339, 420, 4, (162, 214, 255, min(160, alpha)))
             arcade.draw_lbwh_rectangle_outline(190, 254, 420, 92, (201, 239, 235, min(255, alpha + 30)), 2)
             banner_font_size = 24 if len(self.level_banner_text) <= 28 else 19
             banner_lines = wrap_panel_lines([self.level_banner_text], 420, banner_font_size, side_padding=56)[:2]
@@ -743,7 +743,12 @@ class GameView(arcade.View):
                 damage = max(hit.damage for hit in hits)
                 self.health -= damage
                 self.last_hit_time = curr_time
-                self.add_message(f"-{damage} HEART", self.player_sprite.center_x, self.player_sprite.top + 20, arcade.color.RED)
+                self.add_message(
+                    f"{lesson_key} -{damage}",
+                    self.player_sprite.center_x,
+                    self.player_sprite.top + 20,
+                    (176, 214, 255, 255),
+                )
                 self.start_lesson(lesson_key)
                 if self.game_state == "lesson":
                     return
@@ -760,9 +765,9 @@ class GameView(arcade.View):
             if fish.value > 0:
                 self.health = min(HEALTH_MAX, self.health + 1)
                 self.distance_traveled = min(DISTANCE_TO_ALASKA, self.distance_traveled + 10)
-                self.add_message(f"+{fish.value}", fish.center_x, fish.center_y, arcade.color.GOLD)
+                self.add_message(f"+{fish.value}", fish.center_x, fish.center_y, (207, 235, 255, 255))
             else:
-                self.add_message(str(fish.value), fish.center_x, fish.center_y, arcade.color.RED)
+                self.add_message(f"trash {fish.value}", fish.center_x, fish.center_y, (170, 212, 255, 255))
                 self.start_lesson(lesson_key)
             fish.remove_from_sprite_lists()
             if fish.value > 0:
@@ -801,13 +806,13 @@ class GameView(arcade.View):
         self.draw_ui()
 
         if self.game_state == "intro":
-            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (0, 0, 0, 175))
+            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (2, 16, 34, 175))
             self.draw_intro()
         elif self.game_state == "lesson":
-            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (0, 0, 0, 175))
+            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (2, 16, 34, 175))
             self.draw_lesson()
         elif self.is_game_over or self.won:
-            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (0, 0, 0, 180))
+            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (2, 16, 34, 180))
             self.draw_end_explanation()
 
     def on_update(self, delta_time):
