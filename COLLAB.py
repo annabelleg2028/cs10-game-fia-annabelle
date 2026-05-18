@@ -40,7 +40,8 @@ BOAT_SCALE = 0.125
 PLAYER_START_Y = 120
 
 TOTAL_LEVELS = 10
-ENERGY_MAX = 60
+HEALTH_MAX = 5
+ENERGY_MAX = 50
 ENERGY_DRAIN_PER_SECOND = 4.0
 TRASH_DAMAGE = 10
 NET_DAMAGE = 12
@@ -129,6 +130,21 @@ def circle_rectangle_overlap(circle_x, circle_y, radius, rect_x, rect_y, rect_wi
     closest_x = clamp(circle_x, rect_x - rect_width / 2, rect_x + rect_width / 2)
     closest_y = clamp(circle_y, rect_y - rect_height / 2, rect_y + rect_height / 2)
     return (circle_x - closest_x) ** 2 + (circle_y - closest_y) ** 2 <= radius ** 2
+
+
+def draw_heart(center_x, center_y, size, color):
+    radius = size * 0.45
+    arcade.draw_circle_filled(center_x - radius * 0.65, center_y + radius * 0.2, radius, color)
+    arcade.draw_circle_filled(center_x + radius * 0.65, center_y + radius * 0.2, radius, color)
+    arcade.draw_triangle_filled(
+        center_x - radius * 1.15,
+        center_y + radius * 0.15,
+        center_x + radius * 1.15,
+        center_y + radius * 0.15,
+        center_x,
+        center_y - radius * 1.45,
+        color,
+    )
 
 
 def wrap_panel_lines(lines, panel_width, font_size, side_padding=68):
@@ -274,6 +290,7 @@ class GameView(arcade.View):
         self.left_pressed = False
         self.right_pressed = False
 
+        self.health = HEALTH_MAX
         self.energy = ENERGY_MAX
         self.is_game_over = False
         self.won = False
@@ -306,6 +323,7 @@ class GameView(arcade.View):
 
         self.left_pressed = False
         self.right_pressed = False
+        self.health = HEALTH_MAX
         self.energy = ENERGY_MAX
         self.is_game_over = False
         self.won = False
@@ -346,6 +364,7 @@ class GameView(arcade.View):
     def start_migration(self):
         self.hazard_list = arcade.SpriteList()
         self.token_list = arcade.SpriteList()
+        self.health = HEALTH_MAX
         self.energy = ENERGY_MAX
         self.is_game_over = False
         self.won = False
@@ -372,19 +391,19 @@ class GameView(arcade.View):
         if hazard_kind == "boat":
             hazard = arcade.Sprite(BOAT_IMAGE, scale=BOAT_SCALE)
             hazard.kind = "boat"
-            hazard.damage = BOAT_DAMAGE
+            hazard.damage = 1
         elif hazard_kind == "trash":
             hazard = arcade.SpriteSolidColor(34, 34, (116, 169, 232, 255))
             hazard.kind = "trash"
-            hazard.damage = TRASH_DAMAGE
+            hazard.damage = 1
         elif hazard_kind == "net":
             hazard = arcade.Sprite(NET_IMAGE, scale=NET_SCALE)
             hazard.kind = "net"
-            hazard.damage = NET_DAMAGE
+            hazard.damage = 1
         else:
             hazard = arcade.Sprite(NET_IMAGE, scale=NET_SCALE)
             hazard.kind = "net"
-            hazard.damage = NET_DAMAGE
+            hazard.damage = 1
 
         hazard.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
         hazard.center_y = self.next_spawn_y + (ROW_HEIGHT / 2)
@@ -409,14 +428,14 @@ class GameView(arcade.View):
         base_chance = clamp(0.66 - (level_index * 0.05), 0.22, 0.66)
         if self.current_level == 1:
             base_chance += 0.05
-        if self.energy <= 30:
+        if self.energy <= 20:
             base_chance += 0.10
         return clamp(base_chance, 0.22, 0.74)
 
     def fish_school_chance(self):
         level_index = self.current_level - 1
         base_chance = clamp(0.24 - (level_index * 0.01), 0.07, 0.24)
-        if self.energy <= 30:
+        if self.energy <= 20:
             base_chance += 0.02
         return clamp(base_chance, 0.07, 0.26)
 
