@@ -30,9 +30,9 @@ OCEAN_TILE_WIDTH = SCREEN_WIDTH
 OCEAN_TILE_HEIGHT = OCEAN_TILE_WIDTH * (OCEAN_IMAGE_HEIGHT / OCEAN_IMAGE_WIDTH)
 
 GRID_COLUMNS = 8
-SCROLL_SPEED = 3.7
-MOVEMENT_SPEED = 8
-PATROL_SPEED = 2
+SCROLL_SPEED = 2.8
+MOVEMENT_SPEED = 9
+PATROL_SPEED = 1.5
 
 WHALE_SCALE = 0.13
 FISH_SCALE = 0.07
@@ -41,7 +41,7 @@ BOAT_SCALE = 0.125
 PLAYER_START_Y = 120
 
 TOTAL_LEVELS = 10
-HEALTH_MAX = 5
+HEALTH_MAX = 6
 DISTANCE_PER_LEVEL = 5200
 DISTANCE_TO_ALASKA = DISTANCE_PER_LEVEL * TOTAL_LEVELS
 LEVEL_TRANSITION_DISTANCE = 520
@@ -53,13 +53,15 @@ ROW_HEIGHT = 80
 PLAYER_HITBOX_WIDTH = 44
 PLAYER_HITBOX_HEIGHT = 62
 WHALE_FORWARD_ANGLE = 0
-GAME_FONT = ("Avenir Next", "Gill Sans", "Georgia", "Arial")
-TITLE_FONT = ("Snell Roundhand", "Noteworthy", "Georgia", "Times New Roman")
-PANEL_INK = (7, 31, 45, 224)
-PANEL_EDGE = (201, 239, 235, 230)
-PANEL_GLOW = (245, 181, 120, 78)
-TEXT_SOFT = (235, 250, 246, 255)
-TEXT_ACCENT = (255, 204, 128, 255)
+GAME_FONT = ("Avenir Next", "Helvetica Neue", "Arial")
+TITLE_FONT = ("Avenir Next Condensed", "Avenir Next", "Helvetica Neue", "Arial")
+BODY_FONT_SIZE = 13
+TITLE_FONT_SIZE = 24
+FOOTER_FONT_SIZE = 11
+PANEL_PADDING_X = 26
+PANEL_INK = (94, 170, 226, 245)
+TEXT_SOFT = (249, 252, 255, 255)
+TEXT_ACCENT = (220, 239, 255, 255)
 
 LEVEL_GRADIENTS = [
     ((120, 220, 218), (46, 145, 190)),
@@ -135,6 +137,10 @@ def wrap_panel_lines(lines, panel_width, font_size, side_padding=68):
     return wrapped
 
 
+def estimate_text_width(text, font_size, padding=0):
+    return (len(text) * font_size * 0.52) + padding
+
+
 def draw_game_text(*args, **kwargs):
     kwargs.setdefault("font_name", GAME_FONT)
     arcade.draw_text(*args, **kwargs)
@@ -145,48 +151,64 @@ def draw_title_text(*args, **kwargs):
     arcade.draw_text(*args, **kwargs)
 
 
-def draw_panel(center_x, center_y, width, height, title, lines, footer):
-    left = center_x - width / 2
-    bottom = center_y - height / 2
-    arcade.draw_lbwh_rectangle_filled(left + 9, bottom - 9, width, height, (2, 13, 25, 105))
-    arcade.draw_lbwh_rectangle_filled(left, bottom, width, height, PANEL_INK)
-    arcade.draw_lbwh_rectangle_filled(left, bottom + height - 7, width, 7, PANEL_GLOW)
-    arcade.draw_lbwh_rectangle_filled(left + 20, bottom + height - 15, width - 40, 1, (255, 231, 188, 115))
-    arcade.draw_lbwh_rectangle_outline(left, bottom, width, height, PANEL_EDGE, 2)
-    arcade.draw_lbwh_rectangle_outline(left + 8, bottom + 8, width - 16, height - 16, (92, 184, 190, 86), 1)
+def draw_rounded_rectangle(left, bottom, width, height, color, radius=16):
+    radius = max(4, min(radius, int(min(width, height) / 2)))
+    core_width = max(0, width - (radius * 2))
+    core_height = max(0, height - (radius * 2))
 
-    title_font_size = 34 if len(title) <= 24 else 28
-    title_lines = wrap_panel_lines([title], width, title_font_size, side_padding=86)[:2]
-    title_y = bottom + height - 45
+    if core_width > 0:
+        arcade.draw_lbwh_rectangle_filled(left + radius, bottom, core_width, height, color)
+    if core_height > 0:
+        arcade.draw_lbwh_rectangle_filled(left, bottom + radius, radius, core_height, color)
+        arcade.draw_lbwh_rectangle_filled(left + width - radius, bottom + radius, radius, core_height, color)
+
+    arcade.draw_circle_filled(left + radius, bottom + radius, radius, color)
+    arcade.draw_circle_filled(left + width - radius, bottom + radius, radius, color)
+    arcade.draw_circle_filled(left + radius, bottom + height - radius, radius, color)
+    arcade.draw_circle_filled(left + width - radius, bottom + height - radius, radius, color)
+
+
+def draw_panel(center_x, center_y, max_width, title, lines, footer):
+    title_font_size = TITLE_FONT_SIZE if len(title) <= 24 else 21
+    footer_font_size = FOOTER_FONT_SIZE
+    body_font_size = BODY_FONT_SIZE
+
+    title_lines = wrap_panel_lines([title], max_width, title_font_size, side_padding=34)[:2]
+    footer_lines = wrap_panel_lines([footer], max_width, footer_font_size, side_padding=34)[:2]
+    body_lines = wrap_panel_lines(lines, max_width, body_font_size, side_padding=34)
+
+    text_width = max(
+        max((estimate_text_width(line, title_font_size) for line in title_lines), default=0),
+        max((estimate_text_width(line, footer_font_size) for line in footer_lines), default=0),
+        max((estimate_text_width(line, body_font_size) for line in body_lines if line), default=0),
+    )
+    panel_width = min(max_width, max(220, text_width + (PANEL_PADDING_X * 2)))
+    title_lines = wrap_panel_lines([title], panel_width, title_font_size, side_padding=24)[:2]
+    footer_lines = wrap_panel_lines([footer], panel_width, footer_font_size, side_padding=24)[:2]
+    body_lines = wrap_panel_lines(lines, panel_width, body_font_size, side_padding=24)
+    body_height = max(1, len(body_lines)) * (body_font_size + 7)
+    title_height = len(title_lines) * (title_font_size + 3)
+    footer_height = len(footer_lines) * (footer_font_size + 3)
+    panel_height = min(390, max(120, title_height + body_height + footer_height + 46))
+
+    left = center_x - panel_width / 2
+    bottom = center_y - panel_height / 2
+    draw_rounded_rectangle(left, bottom, panel_width, panel_height, PANEL_INK, radius=18)
+
+    title_y = bottom + panel_height - 30
     for line in title_lines:
         draw_title_text(line, center_x, title_y, TEXT_SOFT, title_font_size, anchor_x="center")
         title_y -= title_font_size + 2
 
-    footer_font_size = 15
-    footer_lines = wrap_panel_lines([footer], width, footer_font_size, side_padding=86)
-    while len(footer_lines) > 2 and footer_font_size > 11:
-        footer_font_size -= 1
-        footer_lines = wrap_panel_lines([footer], width, footer_font_size, side_padding=86)
-    footer_lines = footer_lines[:2]
-    footer_y = bottom + 34 + ((len(footer_lines) - 1) * (footer_font_size - 5))
+    footer_y = bottom + 20 + ((len(footer_lines) - 1) * (footer_font_size - 4))
     for line in footer_lines:
         draw_game_text(line, center_x, footer_y, TEXT_ACCENT, footer_font_size, anchor_x="center", bold=True)
         footer_y -= footer_font_size + 5
 
-    text_y = min(title_y - 20, bottom + height - 92)
-    footer_top = bottom + 68
-    body_font_size = 15
-    line_spacing = 22
-    body_lines = wrap_panel_lines(lines, width, body_font_size, side_padding=76)
-    available_lines = max(1, int((text_y - footer_top) // line_spacing) + 1)
-    while len(body_lines) > available_lines and body_font_size > 10:
-        body_font_size -= 1
-        line_spacing = body_font_size + 6
-        body_lines = wrap_panel_lines(lines, width, body_font_size, side_padding=76)
-        available_lines = max(1, int((text_y - footer_top) // line_spacing) + 1)
-
+    text_y = title_y - 18
+    line_spacing = body_font_size + 6
     for line in body_lines:
-        if text_y < footer_top:
+        if text_y < bottom + 42:
             break
         if line:
             draw_game_text(line, left + 38, text_y, TEXT_SOFT, body_font_size)
@@ -202,27 +224,17 @@ def draw_heart(center_x, center_y, size, color):
         y = 13 * math.cos(angle) - 5 * math.cos(2 * angle) - 2 * math.cos(3 * angle) - math.cos(4 * angle)
         points.append((center_x + x * scale, center_y + (y - 2) * scale))
     arcade.draw_polygon_filled(points, color)
-    arcade.draw_polygon_outline(points, (255, 235, 235, 180), max(1, int(size * 0.08)))
 
 
 def draw_trash(center_x, center_y, scale=1.0):
     radius = 13 * scale
-    arcade.draw_circle_filled(center_x, center_y, radius, (170, 125, 70, 255))
-    arcade.draw_circle_outline(center_x, center_y, radius + 2, arcade.color.BLACK, 2)
-    arcade.draw_line(
-        center_x - radius * 0.5,
-        center_y - radius * 0.3,
-        center_x + radius * 0.45,
-        center_y + radius * 0.35,
-        (80, 65, 50, 255),
-        2,
-    )
+    arcade.draw_circle_filled(center_x, center_y, radius, (116, 169, 232, 255))
 
 
 class GameView(arcade.View):
     def __init__(self):
         super().__init__()
-        self.background_color = arcade.csscolor.DARK_SLATE_BLUE
+        self.background_color = (7, 30, 58)
         self.ocean = arcade.load_texture(OCEAN_IMAGE)
         self.whale_texture = arcade.load_texture(WHALE_IMAGE)
         self.heart_texture = arcade.load_texture(HEART_IMAGE)
@@ -307,14 +319,14 @@ class GameView(arcade.View):
 
     def choose_hazard_kind(self):
         if self.current_level == 1:
-            return "trash" if random.random() < 0.50 else "net"
+            return "trash" if random.random() < 0.35 else "net"
         if self.current_level == 2:
-            return "trash" if random.random() < 0.42 else "net"
+            return "trash" if random.random() < 0.30 else "net"
 
         roll = random.random()
-        if roll < 0.42:
+        if roll < 0.32:
             return "net"
-        if roll < 0.74:
+        if roll < 0.78:
             return "trash"
         return "boat"
 
@@ -348,9 +360,9 @@ class GameView(arcade.View):
         if hazard_kind == "boat":
             hazard = arcade.Sprite(BOAT_IMAGE, scale=BOAT_SCALE)
             hazard.kind = "boat"
-            hazard.damage = 2
+            hazard.damage = 1
         elif hazard_kind == "trash":
-            hazard = arcade.SpriteSolidColor(34, 34, (170, 125, 70, 255))
+            hazard = arcade.SpriteSolidColor(34, 34, (116, 169, 232, 255))
             hazard.kind = "trash"
             hazard.damage = 1
         elif hazard_kind == "net":
@@ -371,7 +383,7 @@ class GameView(arcade.View):
         token = arcade.Sprite(texture_path, scale=FISH_SCALE * (1.15 if is_school else 1.0))
         token.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
         token.center_y = self.next_spawn_y + (ROW_HEIGHT / 2)
-        hidden_trash_chance = clamp(0.15 + (self.level_ratio * 0.30), 0.15, 0.45)
+        hidden_trash_chance = clamp(0.10 + (self.level_ratio * 0.20), 0.10, 0.30)
         token.value = random.choice([-10, -5]) if random.random() < hidden_trash_chance else random.choice([5, 10, 15, 20])
         token.kind = "fish"
         token.is_trash = token.value < 0
@@ -384,12 +396,12 @@ class GameView(arcade.View):
         distance_ratio = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
         difficulty = self.level_ratio
 
-        can_spawn_boats = self.current_level >= 3
-        if can_spawn_boats and self.rows_since_last_patrol >= 0 and random.random() < (0.12 + difficulty * 0.38):
+        can_spawn_boats = self.current_level >= 4
+        if can_spawn_boats and self.rows_since_last_patrol >= 1 and random.random() < (0.06 + difficulty * 0.16):
             h_col = random.choice(all_cols)
             occupied_cols.append(h_col)
             hazard = self.spawn_hazard(h_col, "boat")
-            patrol_speed = PATROL_SPEED + difficulty * 2.2
+            patrol_speed = PATROL_SPEED + difficulty * 1.2
             hazard.change_x = patrol_speed if random.random() > 0.5 else -patrol_speed
             self.prev_hazard_cols = [h_col]
             self.rows_since_last_patrol = 0
@@ -406,13 +418,13 @@ class GameView(arcade.View):
                 safe_choices = all_cols
 
             hazard_total = 1
-            if self.current_level >= 3 and random.random() < (0.28 + difficulty * 0.42):
+            if self.current_level >= 3 and random.random() < (0.16 + difficulty * 0.18):
                 hazard_total += 1
-            if self.current_level >= 5 and random.random() < (0.18 + difficulty * 0.38):
+            if self.current_level >= 5 and random.random() < (0.09 + difficulty * 0.14):
                 hazard_total += 1
-            if self.current_level >= 8 and random.random() < (0.12 + difficulty * 0.34):
+            if self.current_level >= 8 and random.random() < (0.05 + difficulty * 0.10):
                 hazard_total += 1
-            if self.current_level >= 10 and random.random() < (0.10 + difficulty * 0.24):
+            if self.current_level >= 10 and random.random() < (0.04 + difficulty * 0.08):
                 hazard_total += 1
 
             for _ in range(min(hazard_total, len(safe_choices))):
@@ -424,14 +436,18 @@ class GameView(arcade.View):
             self.prev_hazard_cols = occupied_cols
 
             remaining_cols = [c for c in all_cols if c not in occupied_cols]
+<<<<<<< HEAD
             fish_chance = clamp(0.56 - difficulty * 0.34, 0.14, 0.72)
+=======
+            fish_chance = clamp(0.68 - difficulty * 0.18 + (0.18 if self.health <= 2 else 0.0), 0.22, 0.82)
+>>>>>>> a5a168cee7701e2b70d7940329cd724853c3510b
             if self.current_level >= 2 and remaining_cols and random.random() < fish_chance:
                 token_col = random.choice(remaining_cols)
                 occupied_cols.append(token_col)
                 remaining_cols.remove(token_col)
                 self.spawn_token(token_col)
 
-            school_chance = clamp(0.32 - difficulty * 0.18, 0.10, 0.32)
+            school_chance = clamp(0.40 - difficulty * 0.12, 0.16, 0.42)
             if self.current_level >= 2 and remaining_cols and random.random() < school_chance and distance_ratio > 0.15:
                 lane = random.choice(remaining_cols)
                 neighbor_lanes = [lane]
@@ -490,8 +506,6 @@ class GameView(arcade.View):
 
         if transition_y is not None:
             line_alpha = int(220 * (1.0 - abs(0.5 - transition_amount) * 0.75))
-            arcade.draw_line(0, transition_y, SCREEN_WIDTH, transition_y, (230, 250, 255, line_alpha), 3)
-            arcade.draw_line(0, transition_y - 4, SCREEN_WIDTH, transition_y - 4, (80, 190, 220, 90), 1)
             label_y = clamp(transition_y + 12, 34, SCREEN_HEIGHT - 66)
             draw_game_text(
                 f"Level {self.current_level}",
@@ -514,26 +528,13 @@ class GameView(arcade.View):
         mix = smoothstep((band_center - transition_y + (LEVEL_TRANSITION_BAND / 2)) / LEVEL_TRANSITION_BAND)
         return blend_color(previous_color, current_color, mix)
 
-    def draw_grid_lines(self):
-        line_color = (210, 245, 250, 50)
-        for i in range(GRID_COLUMNS + 1):
-            x = i * LANE_WIDTH
-            arcade.draw_line(x, 0, x, SCREEN_HEIGHT, line_color, 2)
-
-        line_y = self.next_spawn_y % self.row_height
-        while line_y < SCREEN_HEIGHT:
-            arcade.draw_line(0, line_y, SCREEN_WIDTH, line_y, line_color, 2)
-            line_y += self.row_height
-
     def draw_distance_scale(self):
-        panel_left = SCREEN_WIDTH - 156
-        panel_bottom = 92
-        panel_width = 132
+        panel_left = SCREEN_WIDTH - 178
+        panel_bottom = 118
+        panel_width = 154
         panel_height = 410
-        arcade.draw_lbwh_rectangle_filled(panel_left + 5, panel_bottom - 5, panel_width, panel_height, (2, 13, 25, 82))
-        arcade.draw_lbwh_rectangle_filled(panel_left, panel_bottom, panel_width, panel_height, (4, 39, 58, 154))
-        arcade.draw_lbwh_rectangle_outline(panel_left, panel_bottom, panel_width, panel_height, (204, 241, 232, 176), 1)
-        draw_title_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 28, TEXT_SOFT, 18, anchor_x="center")
+        draw_rounded_rectangle(panel_left, panel_bottom, panel_width, panel_height, PANEL_INK, radius=18)
+        draw_title_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 24, TEXT_SOFT, 18, anchor_x="center")
 
         route = [
             (panel_left + 82, panel_bottom + 54),
@@ -542,10 +543,6 @@ class GameView(arcade.View):
             (panel_left + 48, panel_bottom + 285),
             (panel_left + 76, panel_bottom + 356),
         ]
-        for start, end in zip(route, route[1:]):
-            arcade.draw_line(start[0], start[1], end[0], end[1], (246, 216, 164, 225), 4)
-            arcade.draw_line(start[0], start[1], end[0], end[1], (92, 201, 202, 180), 2)
-
         labels = [
             ("Baja", route[0]),
             ("CA", route[1]),
@@ -553,10 +550,6 @@ class GameView(arcade.View):
             ("B.C.", route[3]),
             ("Alaska", route[4]),
         ]
-        for label, (x, y) in labels:
-            arcade.draw_circle_filled(x, y, 5, TEXT_SOFT)
-            draw_game_text(label, panel_left + 8, y - 7, TEXT_SOFT, 10)
-
         progress = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
         segment_progress = progress * (len(route) - 1)
         segment_index = min(len(route) - 2, int(segment_progress))
@@ -565,9 +558,18 @@ class GameView(arcade.View):
         end = route[segment_index + 1]
         marker_x = start[0] + ((end[0] - start[0]) * local_progress)
         marker_y = start[1] + ((end[1] - start[1]) * local_progress)
-        arcade.draw_circle_filled(marker_x, marker_y, 8, (242, 137, 111, 255))
+
+        for start_point, end_point in zip(route, route[1:]):
+            arcade.draw_line(start_point[0], start_point[1], end_point[0], end_point[1], (224, 242, 255, 220), 4)
+            arcade.draw_line(start_point[0], start_point[1], end_point[0], end_point[1], (164, 212, 255, 120), 2)
+
+        for label, (x, y) in labels:
+            arcade.draw_circle_filled(x, y, 5, TEXT_SOFT)
+            draw_game_text(label, panel_left + 8, y - 7, TEXT_SOFT, 10)
+
+        arcade.draw_circle_filled(marker_x, marker_y, 8, (204, 234, 255, 255))
         arcade.draw_circle_outline(marker_x, marker_y, 10, TEXT_SOFT, 2)
-        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 14, TEXT_ACCENT, 12, anchor_x="center", bold=True)
+        draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 16, TEXT_ACCENT, 12, anchor_x="center", bold=True)
 
     def draw_hud_hearts(self):
         panel_left = SCREEN_WIDTH - 360
@@ -593,6 +595,7 @@ class GameView(arcade.View):
     def draw_ui(self):
         level = min(TOTAL_LEVELS, int(self.distance_traveled // DISTANCE_PER_LEVEL) + 1)
 <<<<<<< HEAD
+<<<<<<< HEAD
         arcade.draw_lbwh_rectangle_filled(12, 540, 392, 48, (0, 40, 70, 170))
         arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 540, 336, 48, (0, 40, 70, 170))
         draw_game_text(f"Level: {level}/{TOTAL_LEVELS}", 24, 563, arcade.color.WHITE, 15, bold=True)
@@ -609,6 +612,10 @@ class GameView(arcade.View):
         arcade.draw_lbwh_rectangle_filled(12, 584, 330, 2, PANEL_GLOW)
         arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 540, 336, 48, (5, 34, 52, 158))
         arcade.draw_lbwh_rectangle_filled(SCREEN_WIDTH - 360, 584, 336, 2, PANEL_GLOW)
+=======
+        draw_rounded_rectangle(12, 540, 330, 48, PANEL_INK, radius=16)
+        draw_rounded_rectangle(SCREEN_WIDTH - 360, 540, 336, 48, PANEL_INK, radius=16)
+>>>>>>> a5a168cee7701e2b70d7940329cd724853c3510b
         draw_game_text(f"Level {level}/{TOTAL_LEVELS}", 24, 556, TEXT_SOFT, 16, bold=True)
         draw_game_text(
             f"Distance: {int(self.distance_traveled)} / {DISTANCE_TO_ALASKA} mi",
@@ -627,9 +634,7 @@ class GameView(arcade.View):
 
         if self.level_banner_timer > 0:
             alpha = int(218 * clamp(self.level_banner_timer / 2.4, 0.0, 1.0))
-            arcade.draw_lbwh_rectangle_filled(190, 254, 420, 92, (7, 31, 45, alpha))
-            arcade.draw_lbwh_rectangle_filled(190, 339, 420, 4, (245, 181, 120, min(160, alpha)))
-            arcade.draw_lbwh_rectangle_outline(190, 254, 420, 92, (201, 239, 235, min(255, alpha + 30)), 2)
+            draw_rounded_rectangle(190, 254, 420, 92, (94, 170, 226, alpha), radius=20)
             banner_font_size = 24 if len(self.level_banner_text) <= 28 else 19
             banner_lines = wrap_panel_lines([self.level_banner_text], 420, banner_font_size, side_padding=56)[:2]
             banner_y = 308 + ((len(banner_lines) - 1) * 12)
@@ -713,7 +718,7 @@ class GameView(arcade.View):
             "The first time you bump into each kind of object, the game pauses to teach you what it means. Hazard lessons are free: you learn without losing a heart.",
             "Move with A/D or the arrow keys. Eat fish for hidden points and follow the coastal route on the right.",
         ]
-        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 640, 430, "Grey Whale Migration", lines, "Press SPACE to start")
+        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 520, "Grey Whale Migration", lines, "Press SPACE to start")
 
     def draw_lesson(self):
         if not self.current_lesson:
@@ -722,8 +727,7 @@ class GameView(arcade.View):
         draw_panel(
             SCREEN_WIDTH / 2,
             SCREEN_HEIGHT / 2,
-            590,
-            310,
+            420,
             title,
             [self.current_lesson["body"]],
             "Press SPACE to continue",
@@ -738,12 +742,16 @@ class GameView(arcade.View):
                 "Reporting entangled or injured marine mammals to local rescue groups also helps experts respond safely.",
             ]
         else:
+<<<<<<< HEAD
             title = "The Whale Died"
+=======
+            title = "You Did Not Make It"
+>>>>>>> a5a168cee7701e2b70d7940329cd724853c3510b
             lines = [
-                "During migration, whales face many human-made threats. Pollution, fishing gear, and ships can turn a long natural journey into a dangerous one.",
-                "People can help by keeping trash out of waterways, recycling fishing line, supporting cleaner harbors, and giving whales space from boats.",
+                "The migration ended early. During the journey, pollution, fishing gear, and boats can turn a natural route into a dangerous one.",
+                "Try again and keep an eye on the hazards. People can help by keeping trash out of waterways, recycling fishing line, supporting cleaner harbors, and giving whales space from boats.",
             ]
-        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 650, 405, title, lines, "Press R to restart")
+        draw_panel(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 560, title, lines, "Press R to restart")
 
     def resolve_collisions(self):
         curr_time = time.time()
@@ -763,7 +771,12 @@ class GameView(arcade.View):
                 damage = max(hit.damage for hit in hits)
                 self.health -= damage
                 self.last_hit_time = curr_time
-                self.add_message(f"-{damage} HEART", self.player_sprite.center_x, self.player_sprite.top + 20, arcade.color.RED)
+                self.add_message(
+                    f"{lesson_key} -{damage}",
+                    self.player_sprite.center_x,
+                    self.player_sprite.top + 20,
+                    (176, 214, 255, 255),
+                )
                 self.start_lesson(lesson_key)
                 if self.game_state == "lesson":
                     return
@@ -779,9 +792,9 @@ class GameView(arcade.View):
             self.score += fish.value
             if fish.value > 0:
                 self.distance_traveled = min(DISTANCE_TO_ALASKA, self.distance_traveled + 10)
-                self.add_message(f"+{fish.value}", fish.center_x, fish.center_y, arcade.color.GOLD)
+                self.add_message(f"+{fish.value}", fish.center_x, fish.center_y, (207, 235, 255, 255))
             else:
-                self.add_message(str(fish.value), fish.center_x, fish.center_y, arcade.color.RED)
+                self.add_message(f"trash {fish.value}", fish.center_x, fish.center_y, (170, 212, 255, 255))
                 self.start_lesson(lesson_key)
             fish.remove_from_sprite_lists()
             if fish.value > 0:
@@ -812,7 +825,6 @@ class GameView(arcade.View):
     def on_draw(self):
         self.clear()
         self.draw_ocean_background()
-        self.draw_grid_lines()
 
         for hazard in self.hazard_list:
             self.draw_hazard(hazard)
@@ -821,13 +833,13 @@ class GameView(arcade.View):
         self.draw_ui()
 
         if self.game_state == "intro":
-            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (0, 0, 0, 175))
+            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (8, 38, 66, 170))
             self.draw_intro()
         elif self.game_state == "lesson":
-            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (0, 0, 0, 175))
+            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (8, 38, 66, 170))
             self.draw_lesson()
         elif self.is_game_over or self.won:
-            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (0, 0, 0, 180))
+            arcade.draw_lbwh_rectangle_filled(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (8, 38, 66, 180))
             self.draw_end_explanation()
 
     def on_update(self, delta_time):
@@ -836,8 +848,8 @@ class GameView(arcade.View):
             return
 
         difficulty = self.level_ratio
-        wave = 1.0 + (0.25 * math.sin(self.distance_traveled / 350.0))
-        current_scroll = clamp(SCROLL_SPEED + ((difficulty ** 1.2) * 5.6) + (wave * 0.35), 3.6, 9.8)
+        wave = 1.0 + (0.18 * math.sin(self.distance_traveled / 360.0))
+        current_scroll = clamp(SCROLL_SPEED + ((difficulty ** 1.2) * 3.2) + (wave * 0.18), 2.2, 6.2)
 
         self.distance_traveled += current_scroll
         self.next_spawn_y -= current_scroll
