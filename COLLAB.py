@@ -648,14 +648,7 @@ class GameView(arcade.View):
         fill_width = bar_width * clamp(self.energy / ENERGY_MAX, 0.0, 1.0)
         arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, bar_width, bar_height, (10, 55, 92, 255))
         arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, fill_width, bar_height, (165, 222, 255, 255))
-        arcade.draw_rectangle_outline(
-            bar_left + (bar_width / 2),
-            bar_bottom + (bar_height / 2),
-            bar_width,
-            bar_height,
-            TEXT_SOFT,
-            2,
-        )
+        arcade.draw_lbwh_rectangle_outline(bar_left, bar_bottom, bar_width, bar_height, TEXT_SOFT, 2)
         draw_game_text("Energy", 24, bar_bottom - 1, TEXT_SOFT, 12)
 
     def draw_ui(self):
