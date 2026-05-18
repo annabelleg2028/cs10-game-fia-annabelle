@@ -544,10 +544,10 @@ class GameView(arcade.View):
         arcade.draw_line(panel_left + 28, route_y[0], panel_left + 28, route_y[-1], (214, 241, 255, 120), 2)
         for idx, (label, y) in enumerate(zip(labels, route_y)):
             arc_color = (214, 241, 255, 255) if idx <= marker_index else (162, 194, 224, 145)
-            arcade.draw_rectangle_filled(panel_left + 28, y, 18, 4, arc_color)
+            arcade.draw_lbwh_rectangle_filled(panel_left + 19, y - 2, 18, 4, arc_color)
             draw_game_text(label, panel_left + 48, y - 6, TEXT_SOFT, 10)
 
-        arcade.draw_rectangle_filled(panel_left + 28, marker_y, 22, 8, (180, 226, 255, 255))
+        arcade.draw_lbwh_rectangle_filled(panel_left + 17, marker_y - 4, 22, 8, (180, 226, 255, 255))
         draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 16, TEXT_ACCENT, 12, anchor_x="center", bold=True)
 
     def draw_hud_hearts(self):
