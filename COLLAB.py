@@ -406,17 +406,17 @@ class GameView(arcade.View):
 
     def fish_spawn_chance(self):
         level_index = self.current_level - 1
-        base_chance = clamp(0.94 - (level_index * 0.06), 0.40, 0.94)
+        base_chance = clamp(0.68 - (level_index * 0.045), 0.18, 0.68)
         if self.energy <= 30:
-            base_chance += 0.06
-        return clamp(base_chance, 0.40, 0.98)
+            base_chance += 0.04
+        return clamp(base_chance, 0.18, 0.74)
 
     def fish_school_chance(self):
         level_index = self.current_level - 1
-        base_chance = clamp(0.18 - (level_index * 0.01), 0.06, 0.18)
+        base_chance = clamp(0.10 - (level_index * 0.006), 0.03, 0.10)
         if self.energy <= 30:
-            base_chance += 0.03
-        return clamp(base_chance, 0.06, 0.22)
+            base_chance += 0.02
+        return clamp(base_chance, 0.03, 0.12)
 
     def spawn_row(self):
         all_cols = list(range(GRID_COLUMNS))
