@@ -370,7 +370,7 @@ class GameView(arcade.View):
         if hazard_kind == "boat":
             hazard = arcade.Sprite(BOAT_IMAGE, scale=BOAT_SCALE)
             hazard.kind = "boat"
-            hazard.damage = 1
+            hazard.damage = 2
         elif hazard_kind == "trash":
             hazard = arcade.SpriteSolidColor(34, 34, (116, 169, 232, 255))
             hazard.kind = "trash"
@@ -393,7 +393,7 @@ class GameView(arcade.View):
         token = arcade.Sprite(texture_path, scale=FISH_SCALE * (1.15 if is_school else 1.0))
         token.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
         token.center_y = self.next_spawn_y + (ROW_HEIGHT / 2)
-        hidden_trash_chance = clamp(0.10 + (self.level_ratio * 0.20), 0.10, 0.30)
+        hidden_trash_chance = clamp(0.14 + (self.level_ratio * 0.24), 0.14, 0.38)
         token.value = random.choice([-10, -5]) if random.random() < hidden_trash_chance else random.choice([5, 10, 15, 20])
         token.kind = "fish"
         token.is_trash = token.value < 0
@@ -406,12 +406,12 @@ class GameView(arcade.View):
         distance_ratio = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
         difficulty = self.level_ratio
 
-        can_spawn_boats = self.current_level >= 4
-        if can_spawn_boats and self.rows_since_last_patrol >= 1 and random.random() < (0.06 + difficulty * 0.16):
+        can_spawn_boats = self.current_level >= 3
+        if can_spawn_boats and self.rows_since_last_patrol >= 1 and random.random() < (0.10 + difficulty * 0.20):
             h_col = random.choice(all_cols)
             occupied_cols.append(h_col)
             hazard = self.spawn_hazard(h_col, "boat")
-            patrol_speed = PATROL_SPEED + difficulty * 1.2
+            patrol_speed = PATROL_SPEED + difficulty * 1.6
             hazard.change_x = patrol_speed if random.random() > 0.5 else -patrol_speed
             self.prev_hazard_cols = [h_col]
             self.rows_since_last_patrol = 0
@@ -428,13 +428,13 @@ class GameView(arcade.View):
                 safe_choices = all_cols
 
             hazard_total = 1
-            if self.current_level >= 3 and random.random() < (0.16 + difficulty * 0.18):
+            if self.current_level >= 2 and random.random() < (0.20 + difficulty * 0.22):
                 hazard_total += 1
-            if self.current_level >= 5 and random.random() < (0.09 + difficulty * 0.14):
+            if self.current_level >= 4 and random.random() < (0.14 + difficulty * 0.18):
                 hazard_total += 1
-            if self.current_level >= 8 and random.random() < (0.05 + difficulty * 0.10):
+            if self.current_level >= 7 and random.random() < (0.08 + difficulty * 0.14):
                 hazard_total += 1
-            if self.current_level >= 10 and random.random() < (0.04 + difficulty * 0.08):
+            if self.current_level >= 9 and random.random() < (0.06 + difficulty * 0.10):
                 hazard_total += 1
 
             for _ in range(min(hazard_total, len(safe_choices))):
@@ -446,14 +446,14 @@ class GameView(arcade.View):
             self.prev_hazard_cols = occupied_cols
 
             remaining_cols = [c for c in all_cols if c not in occupied_cols]
-            fish_chance = clamp(0.68 - difficulty * 0.18 + (0.18 if self.health <= 2 else 0.0), 0.22, 0.82)
+            fish_chance = clamp(0.58 - difficulty * 0.22 + (0.14 if self.health <= 2 or self.energy <= 30 else 0.0), 0.18, 0.72)
             if self.current_level >= 2 and remaining_cols and random.random() < fish_chance:
                 token_col = random.choice(remaining_cols)
                 occupied_cols.append(token_col)
                 remaining_cols.remove(token_col)
                 self.spawn_token(token_col)
 
-            school_chance = clamp(0.40 - difficulty * 0.12, 0.16, 0.42)
+            school_chance = clamp(0.30 - difficulty * 0.14, 0.10, 0.32)
             if self.current_level >= 2 and remaining_cols and random.random() < school_chance and distance_ratio > 0.15:
                 lane = random.choice(remaining_cols)
                 neighbor_lanes = [lane]
@@ -745,6 +745,7 @@ class GameView(arcade.View):
 
                 damage = max(hit.damage for hit in hits)
                 self.health -= damage
+                self.energy = max(0, self.energy - (16 * damage))
                 self.last_hit_time = curr_time
                 self.add_message(
                     f"{lesson_key} -{damage}",
@@ -767,9 +768,11 @@ class GameView(arcade.View):
             self.score += fish.value
             if fish.value > 0:
                 self.health = min(HEALTH_MAX, self.health + 1)
+                self.energy = min(ENERGY_MAX, self.energy + 14 + fish.value)
                 self.distance_traveled = min(DISTANCE_TO_ALASKA, self.distance_traveled + 10)
                 self.add_message(f"+{fish.value}", fish.center_x, fish.center_y, (207, 235, 255, 255))
             else:
+                self.energy = max(0, self.energy - 14)
                 self.add_message(f"trash {fish.value}", fish.center_x, fish.center_y, (170, 212, 255, 255))
                 self.start_lesson(lesson_key)
             fish.remove_from_sprite_lists()
