@@ -110,7 +110,7 @@ class WhaleMigrationGame(arcade.View):
                 "radius": random.randint(12, 20),
                 "speed": random.uniform(85, 135) + level_boost * 6,
                 "damage": 1,
-                "color": (170, 125, 70, 255),
+                "color": (116, 169, 232, 255),
             }
         if obstacle_type == "boat":
             width = random.randint(60, 110)

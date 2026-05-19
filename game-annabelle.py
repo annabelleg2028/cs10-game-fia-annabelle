@@ -75,10 +75,8 @@ def draw_fish(center_x, center_y, scale=1.0, color=(245, 210, 85, 255)):
 
 
 def draw_trash(center_x, center_y, scale=1.0):
-    size = 24 * scale
-    arcade.draw_lbwh_rectangle_filled(center_x - size / 2, center_y - size / 2, size, size, (145, 145, 150, 255))
-    arcade.draw_line(center_x - size * 0.35, center_y - size * 0.25, center_x + size * 0.35, center_y + size * 0.3, arcade.color.DARK_GRAY, 2)
-    arcade.draw_line(center_x - size * 0.25, center_y + size * 0.3, center_x + size * 0.3, center_y - size * 0.25, arcade.color.DARK_GRAY, 2)
+    radius = 13 * scale
+    arcade.draw_circle_filled(center_x, center_y, radius, (116, 169, 232, 255))
 
 
 def draw_net(center_x, center_y, scale=1.0):
