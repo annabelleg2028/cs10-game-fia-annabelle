@@ -8,6 +8,12 @@
 ## Description
 
 This is a game following the migration of a grey whale, and the player sees the hardships that the whale faces, such as pollution, fishing boat harm and limited food access. It is a perfect difficulty level as it is doable for a player to get through 2/3 of the game in the first attemps, but actually winning would take many tries so there is a good mix of instant gradification and difficulty that the player has to overcome.
+
+## Justification
+
+When making our game we made some edits to our origional plan to improve gameplay and flow.
+
+
 ## Screenshots
 
 ![Ending screen of the whale game](ending.png)[journey end]
