@@ -12,7 +12,7 @@ This is a game following the migration of a grey whale, and the player sees the 
 ## Screenshots
 
 [Add 2-3 screenshots of your game in action here. You can embed images using:
-`![Screenshot description](ending.png)`]
+`![Screenshot description](ending.png)`
 [journey end]
 ## How to Install & Play
 
