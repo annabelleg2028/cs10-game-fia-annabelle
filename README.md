@@ -13,7 +13,7 @@ This is a game following the migration of a grey whale, and the player sees the 
 ![Ending screen of the whale game](ending.png)[journey end]
 ![First level of the whale game](level1.png)[journey end]
 ![Level 9 of the whale game](level9.png)[journey end]
-
+##justification
 
 ## How to Install & Play
 
