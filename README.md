@@ -4,8 +4,7 @@
 
 # Your Game Title Here
 
-**Group Members:** [List all group member names here]
-
+**Group Members:** Annabelle, Fia
 ## Description
 
 [Write a short description of your game here. What is it about? What makes it fun?]
