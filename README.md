@@ -8,7 +8,7 @@
 ## Description
 
 [Write a short description of your game here. What is it about? What makes it fun?]
-
+This is a game 
 ## Screenshots
 
 [Add 2-3 screenshots of your game in action here. You can embed images using:
