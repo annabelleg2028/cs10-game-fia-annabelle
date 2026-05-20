@@ -17,6 +17,7 @@ WHALE_IMAGE = ASSET_DIR / "whale.png"
 HEART_IMAGE = ASSET_DIR / "heart.png"
 NET_IMAGE = ASSET_DIR / "fishingnet.png"
 BOAT_IMAGE = ASSET_DIR / "fishingboat.png"
+TRASH_IMAGE = ASSET_DIR / "trash.png"
 FISH_IMAGES = [
     ASSET_DIR / "fish1.png",
     ASSET_DIR / "fish2.png",
@@ -38,6 +39,7 @@ WHALE_SCALE = 0.13
 FISH_SCALE = 0.07
 NET_SCALE = 0.092
 BOAT_SCALE = 0.125
+TRASH_SCALE = 0.045
 PLAYER_START_Y = 120
 
 TOTAL_LEVELS = 10
@@ -240,11 +242,6 @@ def draw_heart(center_x, center_y, size, color):
     arcade.draw_polygon_filled(points, color)
 
 
-def draw_trash(center_x, center_y, scale=1.0):
-    radius = 13 * scale
-    arcade.draw_circle_filled(center_x, center_y, radius, (116, 169, 232, 255))
-
-
 class GameView(arcade.View):
     def __init__(self):
         super().__init__()
@@ -379,7 +376,7 @@ class GameView(arcade.View):
             hazard.kind = "boat"
             hazard.damage = 2
         elif hazard_kind == "trash":
-            hazard = arcade.SpriteSolidColor(34, 34, (116, 169, 232, 255))
+            hazard = arcade.Sprite(TRASH_IMAGE, scale=TRASH_SCALE)
             hazard.kind = "trash"
             hazard.damage = 1
         elif hazard_kind == "net":
@@ -651,15 +648,12 @@ class GameView(arcade.View):
                 banner_y -= banner_font_size + 5
 
     def draw_hazard(self, hazard):
-        if hazard.kind == "trash":
-            draw_trash(hazard.center_x, hazard.center_y, 1.0)
-        else:
-            arcade.draw_texture_rect(
-                hazard.texture,
-                arcade.LBWH(hazard.left, hazard.bottom, hazard.width, hazard.height),
-                angle=hazard.angle,
-                alpha=hazard.alpha,
-            )
+        arcade.draw_texture_rect(
+            hazard.texture,
+            arcade.LBWH(hazard.left, hazard.bottom, hazard.width, hazard.height),
+            angle=hazard.angle,
+            alpha=hazard.alpha,
+        )
 
     def touches_visible_hazard(self, hazard):
         player_x = self.player_sprite.center_x
