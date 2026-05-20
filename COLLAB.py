@@ -5,6 +5,10 @@ import time
 from pathlib import Path
 
 import arcade
+try:
+    from PIL import Image
+except ImportError:  # pragma: no cover - fallback when Pillow is unavailable
+    Image = None
 
 
 SCREEN_WIDTH = 800
@@ -14,10 +18,13 @@ SCREEN_TITLE = "Grey Whale Migration"
 ASSET_DIR = Path(__file__).parent
 OCEAN_IMAGE = ASSET_DIR / "ocean.png"
 WHALE_IMAGE = ASSET_DIR / "whale.png"
-HEART_IMAGE = ASSET_DIR / "heart.png"
 NET_IMAGE = ASSET_DIR / "fishingnet.png"
 BOAT_IMAGE = ASSET_DIR / "fishingboat.png"
+<<<<<<< HEAD
+HEART_IMAGE = ASSET_DIR / "heart.png"
+=======
 TRASH_IMAGE = ASSET_DIR / "trash.png"
+>>>>>>> 99acf09022962b8866a4363ec736c9fb6d99cd03
 FISH_IMAGES = [
     ASSET_DIR / "fish1.png",
     ASSET_DIR / "fish2.png",
@@ -177,11 +184,24 @@ def draw_rounded_rectangle(left, bottom, width, height, color, radius=16):
     arcade.draw_circle_filled(left + width - radius, bottom + height - radius, radius, color)
 
 
+<<<<<<< HEAD
+def draw_outlined_rounded_rectangle(left, bottom, width, height, color, radius=16, outline_color=TEXT_SOFT, outline_width=2):
+    draw_rounded_rectangle(left, bottom, width, height, color, radius=radius)
+    arcade.draw_rectangle_outline(
+        left + (width / 2),
+        bottom + (height / 2),
+        width,
+        height,
+        outline_color,
+        outline_width,
+    )
+=======
 def draw_rectangle_outline(left, bottom, width, height, color, border_width=2):
     arcade.draw_lbwh_rectangle_filled(left, bottom, width, border_width, color)
     arcade.draw_lbwh_rectangle_filled(left, bottom + height - border_width, width, border_width, color)
     arcade.draw_lbwh_rectangle_filled(left, bottom, border_width, height, color)
     arcade.draw_lbwh_rectangle_filled(left + width - border_width, bottom, border_width, height, color)
+>>>>>>> 99acf09022962b8866a4363ec736c9fb6d99cd03
 
 
 def draw_panel(center_x, center_y, max_width, title, lines, footer):
@@ -231,6 +251,11 @@ def draw_panel(center_x, center_y, max_width, title, lines, footer):
         text_y -= line_spacing
 
 
+<<<<<<< HEAD
+def draw_trash(center_x, center_y, scale=1.0):
+    radius = 13 * scale
+    arcade.draw_circle_filled(center_x, center_y, radius, (116, 169, 232, 255))
+=======
 def draw_heart(center_x, center_y, size, color):
     points = []
     scale = size / 18
@@ -240,6 +265,7 @@ def draw_heart(center_x, center_y, size, color):
         y = 13 * math.cos(angle) - 5 * math.cos(2 * angle) - 2 * math.cos(3 * angle) - math.cos(4 * angle)
         points.append((center_x + x * scale, center_y + (y - 2) * scale))
     arcade.draw_polygon_filled(points, color)
+>>>>>>> 99acf09022962b8866a4363ec736c9fb6d99cd03
 
 
 class GameView(arcade.View):
@@ -248,9 +274,17 @@ class GameView(arcade.View):
         self.background_color = (7, 30, 58)
         self.ocean = arcade.load_texture(OCEAN_IMAGE)
         self.whale_texture = arcade.load_texture(WHALE_IMAGE)
-        self.heart_texture = arcade.load_texture(HEART_IMAGE)
         self.net_texture = arcade.load_texture(NET_IMAGE)
         self.boat_texture = arcade.load_texture(BOAT_IMAGE)
+        if Image is not None:
+            with Image.open(HEART_IMAGE) as heart_file:
+                heart_image = heart_file.convert("RGBA")
+            heart_bbox = heart_image.getchannel("A").getbbox()
+            if heart_bbox:
+                heart_image = heart_image.crop(heart_bbox)
+            self.heart_texture = arcade.Texture(heart_image)
+        else:
+            self.heart_texture = arcade.load_texture(HEART_IMAGE)
         self.fish_textures = [arcade.load_texture(path) for path in FISH_IMAGES]
         self.player_sprite = None
 
@@ -330,18 +364,9 @@ class GameView(arcade.View):
     def level_ratio(self):
         return (self.current_level - 1) / (TOTAL_LEVELS - 1)
 
-    def choose_hazard_kind(self):
-        if self.current_level == 1:
-            return "trash" if random.random() < 0.35 else "net"
-        if self.current_level == 2:
-            return "trash" if random.random() < 0.30 else "net"
-
-        roll = random.random()
-        if roll < 0.32:
-            return "net"
-        if roll < 0.78:
-            return "trash"
-        return "boat"
+    def fish_density(self):
+        level_index = self.current_level - 1
+        return clamp(1.0 - (level_index / max(1, TOTAL_LEVELS - 1)), 0.0, 1.0)
 
     def start_migration(self):
         self.hazard_list = arcade.SpriteList()
@@ -376,7 +401,11 @@ class GameView(arcade.View):
             hazard.kind = "boat"
             hazard.damage = 2
         elif hazard_kind == "trash":
+<<<<<<< HEAD
+            hazard = arcade.SpriteSolidColor(34, 34, color=(116, 169, 232, 255))
+=======
             hazard = arcade.Sprite(TRASH_IMAGE, scale=TRASH_SCALE)
+>>>>>>> 99acf09022962b8866a4363ec736c9fb6d99cd03
             hazard.kind = "trash"
             hazard.damage = 1
         elif hazard_kind == "net":
@@ -384,7 +413,9 @@ class GameView(arcade.View):
             hazard.kind = "net"
             hazard.damage = 1
         else:
-            return self.spawn_hazard(col, self.choose_hazard_kind())
+            hazard = arcade.Sprite(NET_IMAGE, scale=NET_SCALE)
+            hazard.kind = "net"
+            hazard.damage = 1
 
         hazard.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
         hazard.center_y = self.next_spawn_y + (ROW_HEIGHT / 2)
@@ -394,7 +425,7 @@ class GameView(arcade.View):
 
     def spawn_token(self, col, is_school=False):
         texture_path = random.choice(FISH_IMAGES)
-        token = arcade.Sprite(texture_path, scale=FISH_SCALE * (1.15 if is_school else 1.0))
+        token = arcade.Sprite(texture_path, scale=FISH_SCALE * (1.25 if is_school else 1.0))
         token.center_x = (col * LANE_WIDTH) + (LANE_WIDTH / 2)
         token.center_y = self.next_spawn_y + (ROW_HEIGHT / 2)
         hidden_trash_chance = clamp(0.14 + (self.level_ratio * 0.24), 0.14, 0.38)
@@ -404,11 +435,32 @@ class GameView(arcade.View):
         self.token_list.append(token)
         return token
 
+    def fish_spawn_chance(self):
+        level_index = self.current_level - 1
+        base_chance = clamp(0.66 - (level_index * 0.05), 0.22, 0.66)
+        if self.current_level == 1:
+            base_chance += 0.05
+        if self.energy <= 20:
+            base_chance += 0.10
+        return clamp(base_chance, 0.22, 0.74)
+
+    def fish_school_chance(self):
+        level_index = self.current_level - 1
+        base_chance = clamp(0.24 - (level_index * 0.01), 0.07, 0.24)
+        if self.energy <= 20:
+            base_chance += 0.02
+        return clamp(base_chance, 0.07, 0.26)
+
     def spawn_row(self):
         all_cols = list(range(GRID_COLUMNS))
         occupied_cols = []
+        hazard_cols = []
         distance_ratio = clamp(self.distance_traveled / DISTANCE_TO_ALASKA, 0.0, 1.0)
         difficulty = self.level_ratio
+        hazard_total = 0
+        safe_choices = []
+        hazard_kind_pool = []
+        boat_chance = 0.0
 
         can_spawn_boats = self.current_level >= 3
         if can_spawn_boats and self.rows_since_last_patrol >= 1 and random.random() < (0.10 + difficulty * 0.20):
@@ -440,6 +492,28 @@ class GameView(arcade.View):
                 hazard_total += 1
             if self.current_level >= 9 and random.random() < (0.06 + difficulty * 0.10):
                 hazard_total += 1
+            hazard_kind_pool = ["trash", "net"]
+            boat_chance = 0.05 + (difficulty * 0.04)
+
+        for _ in range(min(hazard_total, len(safe_choices))):
+            h_col = random.choice(safe_choices)
+            occupied_cols.append(h_col)
+            hazard_cols.append(h_col)
+            safe_choices.remove(h_col)
+            hazard_kind = random.choice(hazard_kind_pool) if hazard_kind_pool else None
+            hazard = self.spawn_hazard(h_col, hazard_kind)
+            if hazard.kind == "boat":
+                patrol_speed = PATROL_SPEED + (difficulty * 1.2)
+                hazard.change_x = patrol_speed if random.random() > 0.5 else -patrol_speed
+
+        remaining_cols = [c for c in all_cols if c not in occupied_cols]
+        if self.current_level >= 3 and remaining_cols and random.random() < boat_chance:
+            boat_col = random.choice(remaining_cols)
+            occupied_cols.append(boat_col)
+            hazard_cols.append(boat_col)
+            hazard = self.spawn_hazard(boat_col, "boat")
+            patrol_speed = PATROL_SPEED + (difficulty * 1.2)
+            hazard.change_x = patrol_speed if random.random() > 0.5 else -patrol_speed
 
             for _ in range(min(hazard_total, len(safe_choices))):
                 h_col = random.choice(safe_choices)
@@ -547,11 +621,11 @@ class GameView(arcade.View):
         draw_title_text("Migration", panel_left + panel_width / 2, panel_bottom + panel_height - 24, TEXT_SOFT, 18, anchor_x="center")
 
         route = [
-            (panel_left + 82, panel_bottom + 54),
-            (panel_left + 58, panel_bottom + 130),
-            (panel_left + 70, panel_bottom + 205),
-            (panel_left + 48, panel_bottom + 285),
-            (panel_left + 76, panel_bottom + 356),
+            (panel_left + 86, panel_bottom + 42),
+            (panel_left + 60, panel_bottom + 98),
+            (panel_left + 70, panel_bottom + 154),
+            (panel_left + 46, panel_bottom + 210),
+            (panel_left + 80, panel_bottom + 266),
         ]
         labels = [
             ("Baja", route[0]),
@@ -581,15 +655,14 @@ class GameView(arcade.View):
         draw_game_text(f"{int(progress * 100)}%", panel_left + panel_width / 2, panel_bottom + 16, TEXT_ACCENT, 12, anchor_x="center", bold=True)
 
     def draw_hud_hearts(self):
-        panel_left = SCREEN_WIDTH - 360
         heart_gap = 28
         heart_size = 24
         hearts_width = (HEALTH_MAX - 1) * heart_gap
-        start_x = panel_left + 230 - (hearts_width / 2)
+        start_x = SCREEN_WIDTH - 130 - (hearts_width / 2)
         heart_bottom = SCREEN_HEIGHT - 48
-        draw_game_text("Health", start_x - 14, heart_bottom + 6, TEXT_SOFT, 12, anchor_x="right")
+        draw_game_text("Health", start_x - 16, heart_bottom + 6, TEXT_SOFT, 12, anchor_x="right")
         for i in range(HEALTH_MAX):
-            alpha = 255 if i < self.health else 70
+            alpha = 255 if i < self.health else 90
             arcade.draw_texture_rect(
                 self.heart_texture,
                 arcade.LBWH(start_x + (i * heart_gap) - heart_size / 2, heart_bottom, heart_size, heart_size),
@@ -603,9 +676,14 @@ class GameView(arcade.View):
         bar_height = 12
         fill_width = bar_width * clamp(self.energy / ENERGY_MAX, 0.0, 1.0)
         arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, bar_width, bar_height, (10, 55, 92, 255))
+<<<<<<< HEAD
+        arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, fill_width, bar_height, (165, 222, 255, 255))
+        arcade.draw_lbwh_rectangle_outline(bar_left, bar_bottom, bar_width, bar_height, TEXT_SOFT, 2)
+=======
         if fill_width > 0:
             arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, fill_width, bar_height, (165, 222, 255, 255))
         draw_rectangle_outline(bar_left, bar_bottom, bar_width, bar_height, TEXT_SOFT, 2)
+>>>>>>> 99acf09022962b8866a4363ec736c9fb6d99cd03
         draw_game_text("Energy", 24, bar_bottom - 1, TEXT_SOFT, 12)
 
     def draw_ui(self):
@@ -646,6 +724,11 @@ class GameView(arcade.View):
                     bold=True,
                 )
                 banner_y -= banner_font_size + 5
+
+    def draw_outlined_status_box(self, panel_left, panel_bottom, panel_width, panel_height):
+        draw_outlined_rounded_rectangle(panel_left, panel_bottom, panel_width, panel_height, PANEL_INK, radius=18)
+        self.draw_hud_hearts()
+        self.draw_energy_bar()
 
     def draw_hazard(self, hazard):
         arcade.draw_texture_rect(
@@ -754,18 +837,18 @@ class GameView(arcade.View):
                 if lesson_key not in self.seen_lessons:
                     hits[0].remove_from_sprite_lists()
                     self.last_hit_time = curr_time
-                    if self.start_lesson(lesson_key):
-                        return
+                if self.start_lesson(lesson_key):
+                    return
 
                 damage = max(hit.damage for hit in hits)
                 self.health -= damage
                 self.energy = max(0, self.energy - (16 * damage))
                 self.last_hit_time = curr_time
                 self.add_message(
-                    f"{lesson_key} -{damage}",
+                    f"-{damage} HEART",
                     self.player_sprite.center_x,
                     self.player_sprite.top + 20,
-                    (176, 214, 255, 255),
+                    (255, 122, 132, 255),
                 )
                 self.start_lesson(lesson_key)
                 if self.game_state == "lesson":
@@ -779,12 +862,12 @@ class GameView(arcade.View):
                 if self.start_lesson(lesson_key):
                     return
 
-            self.score += fish.value
+            self.energy = min(ENERGY_MAX, self.energy + fish.value)
             if fish.value > 0:
                 self.health = min(HEALTH_MAX, self.health + 1)
                 self.energy = min(ENERGY_MAX, self.energy + 14 + fish.value)
                 self.distance_traveled = min(DISTANCE_TO_ALASKA, self.distance_traveled + 10)
-                self.add_message(f"+{fish.value}", fish.center_x, fish.center_y, (207, 235, 255, 255))
+                self.add_message(f"⚡+{fish.value}", fish.center_x, fish.center_y, (207, 235, 255, 255))
             else:
                 self.energy = max(0, self.energy - 14)
                 self.add_message(f"trash {fish.value}", fish.center_x, fish.center_y, (170, 212, 255, 255))
@@ -807,9 +890,9 @@ class GameView(arcade.View):
         if self.current_level > self.last_level:
             self.last_level = self.current_level
             if self.current_level == 2:
-                self.level_banner_text = "Level 2: Fish enter the route"
+                self.level_banner_text = "Level 2: Trash and nets enter the route"
             elif self.current_level == 3:
-                self.level_banner_text = "Level 3: Shipping boats enter the route"
+                self.level_banner_text = "Level 3: Moving ships appear less often"
             else:
                 self.level_banner_text = f"Level {self.current_level}"
             self.level_banner_timer = 2.4
@@ -847,6 +930,7 @@ class GameView(arcade.View):
             energy_drain += MOVEMENT_ENERGY_DRAIN_PER_SECOND
         self.energy = max(0, self.energy - (energy_drain * delta_time))
 
+        self.energy = max(0.0, self.energy - (ENERGY_DRAIN_PER_SECOND * delta_time))
         self.distance_traveled += current_scroll
         self.next_spawn_y -= current_scroll
         self.background_offset = (self.background_offset - current_scroll * 0.65) % OCEAN_TILE_HEIGHT
