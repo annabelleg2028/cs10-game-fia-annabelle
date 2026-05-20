@@ -20,7 +20,11 @@ OCEAN_IMAGE = ASSET_DIR / "ocean.png"
 WHALE_IMAGE = ASSET_DIR / "whale.png"
 NET_IMAGE = ASSET_DIR / "fishingnet.png"
 BOAT_IMAGE = ASSET_DIR / "fishingboat.png"
+<<<<<<< HEAD
 HEART_IMAGE = ASSET_DIR / "heart.png"
+=======
+TRASH_IMAGE = ASSET_DIR / "trash.png"
+>>>>>>> 99acf09022962b8866a4363ec736c9fb6d99cd03
 FISH_IMAGES = [
     ASSET_DIR / "fish1.png",
     ASSET_DIR / "fish2.png",
@@ -42,6 +46,7 @@ WHALE_SCALE = 0.13
 FISH_SCALE = 0.07
 NET_SCALE = 0.092
 BOAT_SCALE = 0.125
+TRASH_SCALE = 0.045
 PLAYER_START_Y = 120
 
 TOTAL_LEVELS = 10
@@ -179,6 +184,7 @@ def draw_rounded_rectangle(left, bottom, width, height, color, radius=16):
     arcade.draw_circle_filled(left + width - radius, bottom + height - radius, radius, color)
 
 
+<<<<<<< HEAD
 def draw_outlined_rounded_rectangle(left, bottom, width, height, color, radius=16, outline_color=TEXT_SOFT, outline_width=2):
     draw_rounded_rectangle(left, bottom, width, height, color, radius=radius)
     arcade.draw_rectangle_outline(
@@ -189,6 +195,13 @@ def draw_outlined_rounded_rectangle(left, bottom, width, height, color, radius=1
         outline_color,
         outline_width,
     )
+=======
+def draw_rectangle_outline(left, bottom, width, height, color, border_width=2):
+    arcade.draw_lbwh_rectangle_filled(left, bottom, width, border_width, color)
+    arcade.draw_lbwh_rectangle_filled(left, bottom + height - border_width, width, border_width, color)
+    arcade.draw_lbwh_rectangle_filled(left, bottom, border_width, height, color)
+    arcade.draw_lbwh_rectangle_filled(left + width - border_width, bottom, border_width, height, color)
+>>>>>>> 99acf09022962b8866a4363ec736c9fb6d99cd03
 
 
 def draw_panel(center_x, center_y, max_width, title, lines, footer):
@@ -238,9 +251,21 @@ def draw_panel(center_x, center_y, max_width, title, lines, footer):
         text_y -= line_spacing
 
 
+<<<<<<< HEAD
 def draw_trash(center_x, center_y, scale=1.0):
     radius = 13 * scale
     arcade.draw_circle_filled(center_x, center_y, radius, (116, 169, 232, 255))
+=======
+def draw_heart(center_x, center_y, size, color):
+    points = []
+    scale = size / 18
+    for degree in range(0, 360, 12):
+        angle = math.radians(degree)
+        x = 16 * (math.sin(angle) ** 3)
+        y = 13 * math.cos(angle) - 5 * math.cos(2 * angle) - 2 * math.cos(3 * angle) - math.cos(4 * angle)
+        points.append((center_x + x * scale, center_y + (y - 2) * scale))
+    arcade.draw_polygon_filled(points, color)
+>>>>>>> 99acf09022962b8866a4363ec736c9fb6d99cd03
 
 
 class GameView(arcade.View):
@@ -376,7 +401,11 @@ class GameView(arcade.View):
             hazard.kind = "boat"
             hazard.damage = 2
         elif hazard_kind == "trash":
+<<<<<<< HEAD
             hazard = arcade.SpriteSolidColor(34, 34, color=(116, 169, 232, 255))
+=======
+            hazard = arcade.Sprite(TRASH_IMAGE, scale=TRASH_SCALE)
+>>>>>>> 99acf09022962b8866a4363ec736c9fb6d99cd03
             hazard.kind = "trash"
             hazard.damage = 1
         elif hazard_kind == "net":
@@ -647,8 +676,14 @@ class GameView(arcade.View):
         bar_height = 12
         fill_width = bar_width * clamp(self.energy / ENERGY_MAX, 0.0, 1.0)
         arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, bar_width, bar_height, (10, 55, 92, 255))
+<<<<<<< HEAD
         arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, fill_width, bar_height, (165, 222, 255, 255))
         arcade.draw_lbwh_rectangle_outline(bar_left, bar_bottom, bar_width, bar_height, TEXT_SOFT, 2)
+=======
+        if fill_width > 0:
+            arcade.draw_lbwh_rectangle_filled(bar_left, bar_bottom, fill_width, bar_height, (165, 222, 255, 255))
+        draw_rectangle_outline(bar_left, bar_bottom, bar_width, bar_height, TEXT_SOFT, 2)
+>>>>>>> 99acf09022962b8866a4363ec736c9fb6d99cd03
         draw_game_text("Energy", 24, bar_bottom - 1, TEXT_SOFT, 12)
 
     def draw_ui(self):
@@ -696,15 +731,12 @@ class GameView(arcade.View):
         self.draw_energy_bar()
 
     def draw_hazard(self, hazard):
-        if hazard.kind == "trash":
-            draw_trash(hazard.center_x, hazard.center_y, 1.0)
-        else:
-            arcade.draw_texture_rect(
-                hazard.texture,
-                arcade.LBWH(hazard.left, hazard.bottom, hazard.width, hazard.height),
-                angle=hazard.angle,
-                alpha=hazard.alpha,
-            )
+        arcade.draw_texture_rect(
+            hazard.texture,
+            arcade.LBWH(hazard.left, hazard.bottom, hazard.width, hazard.height),
+            angle=hazard.angle,
+            alpha=hazard.alpha,
+        )
 
     def touches_visible_hazard(self, hazard):
         player_x = self.player_sprite.center_x

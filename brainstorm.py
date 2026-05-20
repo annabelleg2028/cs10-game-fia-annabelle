@@ -118,7 +118,7 @@ class GameView(arcade.View):
         return random.choice(choices)
 
     def spawn_trash(self, lane: int, row_y: float) -> None:
-        sprite = self.make_item(36, 36, (130, 130, 135, 255), lane, row_y)
+        sprite = self.make_item(36, 36, (116, 169, 232, 255), lane, row_y)
         sprite.damage = 1
         sprite.kind = "trash"
         self.trash_list.append(sprite)
@@ -219,6 +219,10 @@ class GameView(arcade.View):
                 bold=True,
                 anchor_x="center",
             )
+
+    def draw_trash(self) -> None:
+        for trash in self.trash_list:
+            arcade.draw_circle_filled(trash.center_x, trash.center_y, trash.width / 2, (116, 169, 232, 255))
 
     def draw_ui(self) -> None:
         arcade.draw_text(
@@ -428,7 +432,7 @@ class GameView(arcade.View):
     def on_draw(self) -> None:
         self.clear()
         self.draw_background()
-        self.trash_list.draw()
+        self.draw_trash()
         self.net_list.draw()
         self.boat_list.draw()
         self.fish_list.draw()
