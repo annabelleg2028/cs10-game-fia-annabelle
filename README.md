@@ -12,8 +12,7 @@ This is a game following the migration of a grey whale, and the player sees the 
 ## Screenshots
 
 [Add 2-3 screenshots of your game in action here. You can embed images using:
-`![Screenshot description](ending.png)`
-[journey end]
+![Ending screen of the whale game](ending.png)[journey end]
 ## How to Install & Play
 
 Simply download the game executable for your operating system and double-click it to play. No installation required!
