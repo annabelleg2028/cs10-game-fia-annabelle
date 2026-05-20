@@ -8,7 +8,7 @@
 ## Description
 
 [Write a short description of your game here. What is it about? What makes it fun?]
-This is a game following the migration of a grey whale, and the player sees the hardships that the 
+This is a game following the migration of a grey whale, and the player sees the hardships that the whale faces, such as 
 ## Screenshots
 
 [Add 2-3 screenshots of your game in action here. You can embed images using:
