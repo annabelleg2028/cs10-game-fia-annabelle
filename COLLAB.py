@@ -387,11 +387,7 @@ class GameView(arcade.View):
             hazard.kind = "boat"
             hazard.damage = 2
         elif hazard_kind == "trash":
-<<<<<<< HEAD
-            hazard = arcade.SpriteSolidColor(34, 34, color=(116, 169, 232, 255))
-=======
             hazard = arcade.Sprite(TRASH_IMAGE, scale=TRASH_SCALE)
->>>>>>> 99acf09022962b8866a4363ec736c9fb6d99cd03
             hazard.kind = "trash"
             hazard.damage = 1
         elif hazard_kind == "net":
