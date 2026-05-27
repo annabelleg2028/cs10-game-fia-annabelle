@@ -240,11 +240,9 @@ def draw_panel(center_x, center_y, max_width, title, lines, footer):
         text_y -= line_spacing
 
 
-<<<<<<< HEAD
 def draw_trash(center_x, center_y, scale=1.0):
     radius = 13 * scale
     arcade.draw_circle_filled(center_x, center_y, radius, (116, 169, 232, 255))
-=======
 def draw_heart(center_x, center_y, size, color):
     points = []
     scale = size / 18
@@ -254,7 +252,6 @@ def draw_heart(center_x, center_y, size, color):
         y = 13 * math.cos(angle) - 5 * math.cos(2 * angle) - 2 * math.cos(3 * angle) - math.cos(4 * angle)
         points.append((center_x + x * scale, center_y + (y - 2) * scale))
     arcade.draw_polygon_filled(points, color)
->>>>>>> 99acf09022962b8866a4363ec736c9fb6d99cd03
 
 
 class GameView(arcade.View):
