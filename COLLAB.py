@@ -20,11 +20,8 @@ OCEAN_IMAGE = ASSET_DIR / "ocean.png"
 WHALE_IMAGE = ASSET_DIR / "whale.png"
 NET_IMAGE = ASSET_DIR / "fishingnet.png"
 BOAT_IMAGE = ASSET_DIR / "fishingboat.png"
-<<<<<<< HEAD
 HEART_IMAGE = ASSET_DIR / "heart.png"
-=======
 TRASH_IMAGE = ASSET_DIR / "trash.png"
->>>>>>> 99acf09022962b8866a4363ec736c9fb6d99cd03
 FISH_IMAGES = [
     ASSET_DIR / "fish1.png",
     ASSET_DIR / "fish2.png",
