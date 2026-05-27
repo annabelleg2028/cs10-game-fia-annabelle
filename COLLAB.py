@@ -181,7 +181,6 @@ def draw_rounded_rectangle(left, bottom, width, height, color, radius=16):
     arcade.draw_circle_filled(left + width - radius, bottom + height - radius, radius, color)
 
 
-<<<<<<< HEAD
 def draw_outlined_rounded_rectangle(left, bottom, width, height, color, radius=16, outline_color=TEXT_SOFT, outline_width=2):
     draw_rounded_rectangle(left, bottom, width, height, color, radius=radius)
     arcade.draw_rectangle_outline(
@@ -192,13 +191,6 @@ def draw_outlined_rounded_rectangle(left, bottom, width, height, color, radius=1
         outline_color,
         outline_width,
     )
-=======
-def draw_rectangle_outline(left, bottom, width, height, color, border_width=2):
-    arcade.draw_lbwh_rectangle_filled(left, bottom, width, border_width, color)
-    arcade.draw_lbwh_rectangle_filled(left, bottom + height - border_width, width, border_width, color)
-    arcade.draw_lbwh_rectangle_filled(left, bottom, border_width, height, color)
-    arcade.draw_lbwh_rectangle_filled(left + width - border_width, bottom, border_width, height, color)
->>>>>>> 99acf09022962b8866a4363ec736c9fb6d99cd03
 
 
 def draw_panel(center_x, center_y, max_width, title, lines, footer):
