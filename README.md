@@ -1,6 +1,6 @@
 
 
-Grey Whale Migration
+## Grey Whale Migration
 
 **Group Members:** Annabelle, Fia
 ## Description
