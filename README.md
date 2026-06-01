@@ -15,8 +15,8 @@ When making our game we made some edits to our origional plan to improve gamepla
 ## Screenshots
 
 ![Ending screen of the whale game](ending.png)Ending screen of the whale game
-![First level of the whale game](level1.png)[journey end]
-![Level 9 of the whale game](level9.png)[journey end]
+![First level of the whale game](level1.png) First level of the whale game
+![Level 9 of the whale game](level9.png) Level 9 of the whale game
 
 
 ## How to Install & Play
