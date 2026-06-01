@@ -2,6 +2,7 @@ import math
 import random
 import textwrap
 import time
+import sys
 from pathlib import Path
 
 import arcade
@@ -15,7 +16,15 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 SCREEN_TITLE = "Grey Whale Migration"
 
-ASSET_DIR = Path(__file__).parent
+
+def bundle_root() -> Path:
+    """Return the directory that holds bundled assets when frozen."""
+    if hasattr(sys, "_MEIPASS"):
+        return Path(sys._MEIPASS)
+    return Path(__file__).resolve().parent
+
+
+ASSET_DIR = bundle_root()
 OCEAN_IMAGE = ASSET_DIR / "ocean.png"
 WHALE_IMAGE = ASSET_DIR / "whale.png"
 NET_IMAGE = ASSET_DIR / "fishingnet.png"
