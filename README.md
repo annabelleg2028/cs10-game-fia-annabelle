@@ -24,7 +24,8 @@ When making our game we made some edits to our origional plan to improve gamepla
 Simply download the game executable for your operating system and double-click it to play. No installation required!
 
 Mac:
-(<dist/Grey Whale Migration.zip>)
+https://raw.githubusercontent.com/annabelleg2028/cs10-game-fia-annabelle/main/dist/Grey%20Whale%20Migration.zip
+
 
 Windows:
 Your link here
