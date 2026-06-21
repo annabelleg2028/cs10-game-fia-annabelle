@@ -27,5 +27,3 @@ Mac:
 https://raw.githubusercontent.com/annabelleg2028/cs10-game-fia-annabelle/main/dist/Grey%20Whale%20Migration.zip
 If Mac doesn't allow you to open the file, go to privacy settings to overide Apple
 
-Windows:
-Your link here
